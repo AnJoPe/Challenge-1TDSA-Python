@@ -152,8 +152,71 @@ def menu_agendamentos():
                 print("\nOpção inválida!")
                 continue
 
+meu_dado_rg = 123456789
+meu_dado_cpf = 12345678909
+meu_dado_email = "email@gmail.com"
+meu_dado_senha = "senha123"
 
+def menu_meus_dados():
+    global meu_dado_rg, meu_dado_cpf, meu_dado_email, meu_dado_senha
+    while True:
+        print(f"\n Meus Dados:"
+              f"\nRG: {meu_dado_rg};"
+              f"\nCPF: {meu_dado_cpf};"
+              f"\nEmail: {meu_dado_email};"
+              f"\nSenha: {meu_dado_senha};"
+              f"\n\n"
+              f"1 - Editar RG;"
+              f"\n2 - Editar CPF;"
+              f"\n3 - Editar email;"
+              f"\n4 - Editar senha;"
+              f"\n5 - Voltar")
 
+        opcao_meus_dados = int(input("Insira o número de sua escolha: "))
+        match opcao_meus_dados:
+            case 1:
+                novo_rg = int(input("Insira o seu novo RG (min. 9 digitos, máx. 10): "))
+                if len(str(novo_rg)) < 9 or len(str(novo_rg)) > 10:
+                    print("\nNovo RG é inválido (maior que 10 ou menor que 9 digitos)")
+                    continue
+
+                meu_dado_rg = novo_rg
+                print("\n Novo RG salvo com sucesso!")
+
+            case 2:
+                novo_cpf = int(input("Insira o seu novo CPF (min. 11 digitos): "))
+                if len(str(novo_cpf)) < 11:
+                    print("\nNovo CPF é inválido (menor que 11 digitos)")
+                    continue
+
+                meu_dado_cpf = novo_cpf
+                print("\n Novo CPF salvo com sucesso!")
+
+            case 3:
+                novo_email = input("Insira o seu novo email: ")
+                if not "@" in novo_email:
+                    print("\nNovo email é inválido")
+                    continue
+
+                meu_dado_email = novo_email
+                print("\n Novo email salvo com sucesso!")
+
+            case 4:
+                nova_senha = input("Insira a sua nova senha (Sem espaços, minímo 5 digitos): ")
+                if " " in nova_senha or len(nova_senha) < 5:
+                    print("\nNova senha é inválida, verifique se você utilizou um espaço ou se ela tem no mínimo 5 digitos")
+                    continue
+
+                meu_dado_senha = nova_senha
+                print("\n Nova senha salva com sucesso!")
+
+            case 5:
+                print("\n\nVoltando.")
+                break
+
+            case _:
+                print("Escolha inválida")
+                continue
 
 #Loop será infinito até o usuário voluntariamente sair
 while True:
@@ -164,3 +227,6 @@ while True:
     match(opcao_menu):
         case 1:
             menu_agendamentos()
+
+        case 2:
+            menu_meus_dados()

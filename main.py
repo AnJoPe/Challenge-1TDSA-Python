@@ -12,7 +12,7 @@ esta_logado = False
         # "senha": senha_do_paciente
 lista_contas_pacientes = []
 
-email_atual_logado = ""
+meu_dado_email = ""
 
 
 # Função para checar se um input é sim. É para evitar colocar ifs gigantes por todo o código.
@@ -70,7 +70,7 @@ while not esta_logado:
 
                 print("Registro realizado com sucesso \n\n")
                 #Salva o email logado numa variável, caso venha a ser útil depois
-                email_atual_logado = email_registro
+                meu_dado_email= email_registro
 
                 salvo = True
                 esta_logado = True
@@ -104,7 +104,7 @@ while not esta_logado:
 
                     conseguiu_logar = True
                     esta_logado = True
-                    email_atual_logado = email_login
+                    meu_dado_email = email_login
                     break
 
                 #Checa se o email coincide, mas a senha não.
