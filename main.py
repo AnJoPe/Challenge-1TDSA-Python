@@ -14,18 +14,40 @@ lista_contas_pacientes = []
 
 email_atual_logado = ""
 
+
+# Função para checar se um input é sim. É para evitar colocar ifs gigantes por todo o código.
+def checarInputSim(inputString):
+    if (
+        inputString.lower() == "sim"
+        or inputString.lower() == "s"
+        or inputString.lower() == "si"
+        or inputString.lower() == "yes"
+        or inputString.lower() == "ye"
+        or inputString.lower() == "y"
+    ):
+        return True
+    else:
+        return False
+
+# Função para checar se um input é não. É para evitar colocar ifs gigantes por todo o código.
+def checarInputNao(inputString):
+    if (
+        inputString.lower() == "nao"
+        or inputString.lower() == "não"
+        or inputString.lower() == "na"
+        or inputString.lower() == "nã"
+        or inputString.lower() == "n"
+        or inputString.lower() == "no"
+    ):
+        return True
+    else:
+        return False
+
 # Loop de logar/registrar, roda enquanto não estiver logado
 while not esta_logado:
     possui_registro = input("Você já possui um cadastro? (Sim/Não): ")
     #Checa as variações mais comuns de "não", só por via das dúvidas
-    if (
-            possui_registro.lower() == "nao"
-            or possui_registro.lower() == "não"
-            or possui_registro.lower() == "na"
-            or possui_registro.lower() == "nã"
-            or possui_registro.lower() == "n"
-            or possui_registro.lower() == "no"
-    ):
+    if checarInputNao(possui_registro):
         print("Certo, prosseguiremos com o processo de registro.\n")
 
         #Variável de controle do while de registro
@@ -40,14 +62,7 @@ while not esta_logado:
             confirmar_senha = input(f"Seu email será: {email_registro} \nSua senha será: {senha_registro}\n\n Está "
                                     f"correto? (Sim/Não): ")
 
-            if (
-                    confirmar_senha.lower() == "sim"
-                    or confirmar_senha.lower() == "s"
-                    or confirmar_senha.lower() == "si"
-                    or confirmar_senha.lower() == "yes"
-                    or confirmar_senha.lower() == "ye"
-                    or confirmar_senha.lower() == "y"
-            ):
+            if checarInputSim(confirmar_senha):
                 lista_contas_pacientes.append({
                     "email": email_registro,
                     "senha": senha_registro
@@ -66,14 +81,7 @@ while not esta_logado:
                 print("Entendido, tentaremos novamente.")
                 continue
 
-    elif (
-            possui_registro.lower() == "sim"
-            or possui_registro.lower() == "s"
-            or possui_registro.lower() == "si"
-            or possui_registro.lower() == "yes"
-            or possui_registro.lower() == "ye"
-            or possui_registro.lower() == "y"
-    ):
+    elif checarInputSim(possui_registro):
         print("Certo, efetuaremos a sua autenticação a seguir. \n")
 
         #Variável de controle do while de login
@@ -109,4 +117,19 @@ while not esta_logado:
                 else:
                     print("Conta inexistente!")
 
-print("Sai do loop!")
+
+def menuPacienteEscolha():
+    print("\n\nMenu do Paciente:"
+          "\n1 - Agendamentos;"
+          "\n2 - Meus Dados;"
+          "\n3 - Exames;"
+          "\n4 - Prescrições;"
+          "\n5 - Documentos Necessários;"
+          "\n6 - Ajuda;"
+          "\n7 - Desconectar.")
+
+    return int(input("Insira o número de sua escolha: "))
+
+#Loop será infinito até o usuário voluntariamente sair
+while True:
+    opcao_menu = menuPacienteEscolha()
