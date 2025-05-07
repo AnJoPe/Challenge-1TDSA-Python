@@ -336,7 +336,7 @@ def menu_exames():
                         input("Insira o número identificador do exame a ser agendado que deseja remover: "))
 
                     if selecao_deletar_exame == 0:
-                        agendamento_escolhido = True
+                        exame_escolhido = True
                         continue
 
                     elif selecao_deletar_exame < 0 or selecao_deletar_exame > len(lista_exames):
@@ -528,216 +528,246 @@ def menu_documentos_necessarios():
               f"\n4 - Voltar")
 
         opcao_documentos_necessarios = int(input("Insira o número de sua escolha: "))
-        while True:
-            match opcao_documentos_necessarios:
-                case 1:
-                    print(f"Carteirinha de Vacinação:"
-                          f"1 - Listar vacinações anteriores;"
-                          f"2 - Adicionar vacinação;"
-                          f"3 - Voltar")
 
-                    opcao_carteirinha_vacinacao = int(input("Insira o número de sua escolha: "))
-                    match opcao_carteirinha_vacinacao:
-                        case 1:
-                            print("Lista de Vacinações feitas: \n")
-                            for vacinacao in lista_vacinacoes_anteriores:
-                                print(f"--------------------------"
-                                      f"\nVacina: {vacinacao.get("vacina")};"
-                                      f"\nData de Aplicação: {vacinacao.get("data_aplicacao")};"
-                                      f"\nData de Validade: {vacinacao.get("validade")}"
-                                      )
-                            print("--------------------------")
+        match opcao_documentos_necessarios:
+            case 1:
+                print(f"\n\nCarteirinha de Vacinação:"
+                      f"\n1 - Listar vacinações anteriores;"
+                      f"\n2 - Adicionar vacinação;"
+                      f"\n3 - Voltar")
 
-                        case 2:
-                            informacoes_corretas = False
+                opcao_carteirinha_vacinacao = int(input("Insira o número de sua escolha: "))
+                match opcao_carteirinha_vacinacao:
+                    case 1:
+                        print("Lista de Vacinações feitas: \n")
+                        for vacinacao in lista_vacinacoes_anteriores:
+                            print(f"--------------------------"
+                                  f"\nVacina: {vacinacao.get("vacina")};"
+                                  f"\nData de Aplicação: {vacinacao.get("data_aplicacao")};"
+                                  f"\nData de Validade: {vacinacao.get("validade")}"
+                                  )
+                        print("--------------------------")
 
-                            nome_vacina = ""
-                            data_aplicacao = ""
-                            data_validade = ""
+                    case 2:
+                        informacoes_corretas = False
 
-                            while not informacoes_corretas:
-                                nome_vacina = input("Insira o nome da Vacina: ")
+                        nome_vacina = ""
+                        data_aplicacao = ""
+                        data_validade = ""
 
-                                if len(nome_vacina.strip(" ")) < 1:
-                                    print("Nome inválido")
-                                    continue
+                        while not informacoes_corretas:
+                            nome_vacina = input("Insira o nome da Vacina: ")
 
-                                data_aplicacao = input("Insira a data de aplicação da vacina (dd/mm/aaaa): ")
+                            if len(nome_vacina.strip(" ")) < 1:
+                                print("Nome inválido")
+                                continue
 
-                                if len(data_aplicacao) < 8:
-                                    print("Data de aplicação inválida")
-                                    continue
+                            data_aplicacao = input("Insira a data de aplicação da vacina (dd/mm/aaaa): ")
 
-                                data_validade = input("Insira a data de validade da vacina (dd/mm/aaaa): ")
+                            if len(data_aplicacao) < 8:
+                                print("Data de aplicação inválida")
+                                continue
 
-                                if len(data_aplicacao) < 8:
-                                    print("Data de validade inválida")
-                                    continue
+                            data_validade = input("Insira a data de validade da vacina (dd/mm/aaaa): ")
 
-                                informacoes_corretas = True
-                                nova_vacinacao = {
-                                    "vacina": nome_vacina,
-                                    "data_aplicacao": data_aplicacao,
-                                    "validade": data_validade
-                                }
+                            if len(data_aplicacao) < 8:
+                                print("Data de validade inválida")
+                                continue
 
-                                lista_vacinacoes_anteriores.append(nova_vacinacao)
+                            informacoes_corretas = True
+                            nova_vacinacao = {
+                                "vacina": nome_vacina,
+                                "data_aplicacao": data_aplicacao,
+                                "validade": data_validade
+                            }
 
-                                print("Vacina adicionada à lista com sucesso!")
+                            lista_vacinacoes_anteriores.append(nova_vacinacao)
 
-                        case 3:
-                            print("\n\nVoltando.")
-                            break
+                            print("Vacina adicionada à lista com sucesso!")
 
-                        case _:
-                            print("Opção inválida.")
-                            continue
+                    case 3:
+                        print("\n\nVoltando.")
+                        break
 
-                case 2:
-                    print(f"Convênios Médicos:"
-                          f"1 - Listar convênios médicos;"
-                          f"2 - Adicionar convênio médico;"
-                          f"3 - Voltar")
+                    case _:
+                        print("Opção inválida.")
+                        continue
 
-                    opcao_convenio_medico = int(input("Insira o número de sua escolha: "))
-                    match opcao_convenio_medico:
-                        case 1:
-                            print("Lista de Convênios Médicos: \n")
-                            for convenio in lista_convenios_medicos:
-                                print(f"--------------------------"
-                                      f"\nOperadora: {convenio.get("operadora")};"
-                                      f"\nNúmero da Carteirinha: {convenio.get("numero_carteirinha")};"
-                                      f"\nInício da Vigência: {convenio.get("inicio_vigencia")};"
-                                      f"\nData de Validade: {convenio.get("validade")}"
-                                      )
-                            print("--------------------------")
+            case 2:
+                print(f"\n\nConvênios Médicos:"
+                      f"\n1 - Listar convênios médicos;"
+                      f"\n2 - Adicionar convênio médico;"
+                      f"\n3 - Voltar")
 
-                        case 2:
-                            informacoes_corretas = False
+                opcao_convenio_medico = int(input("Insira o número de sua escolha: "))
+                match opcao_convenio_medico:
+                    case 1:
+                        print("Lista de Convênios Médicos: \n")
+                        for convenio in lista_convenios_medicos:
+                            print(f"--------------------------"
+                                  f"\nOperadora: {convenio.get("operadora")};"
+                                  f"\nNúmero da Carteirinha: {convenio.get("numero_carteirinha")};"
+                                  f"\nInício da Vigência: {convenio.get("inicio_vigencia")};"
+                                  f"\nData de Validade: {convenio.get("validade")}"
+                                  )
+                        print("--------------------------")
 
-                            nome_operadora = ""
-                            numero_carteirinha = ""
-                            inicio_vigencia = ""
-                            data_validade = ""
+                    case 2:
+                        informacoes_corretas = False
 
-                            while not informacoes_corretas:
-                                nome_operadora = input("Insira o nome da Operadora: ")
+                        nome_operadora = ""
+                        numero_carteirinha = ""
+                        inicio_vigencia = ""
+                        data_validade = ""
 
-                                if len(nome_operadora.strip(" ")) < 1:
-                                    print("Nome inválido")
-                                    continue
+                        while not informacoes_corretas:
+                            nome_operadora = input("Insira o nome da Operadora: ")
 
-                                numero_carteirinha = input("Insira o número da carteirinha: ")
+                            if len(nome_operadora.strip(" ")) < 1:
+                                print("Nome inválido")
+                                continue
 
-                                if len(numero_carteirinha) < 3:
-                                    print("Número da carteirinha inválido")
-                                    continue
+                            numero_carteirinha = input("Insira o número da carteirinha: ")
 
-                                inicio_vigencia = input("Insira a data de início da vigência de carteirinha (dd/mm/aaaa): ")
+                            if len(numero_carteirinha) < 3:
+                                print("Número da carteirinha inválido")
+                                continue
 
-                                if len(inicio_vigencia) < 8:
-                                    print("Data de validade inválida")
-                                    continue
+                            inicio_vigencia = input("Insira a data de início da vigência de carteirinha (dd/mm/aaaa): ")
 
-                                data_validade = input(
-                                    "Insira a data de validade da carteirinha (dd/mm/aaaa): ")
+                            if len(inicio_vigencia) < 8:
+                                print("Data de validade inválida")
+                                continue
 
-                                if len(data_validade) < 8:
-                                    print("Data de validade inválida")
-                                    continue
+                            data_validade = input(
+                                "Insira a data de validade da carteirinha (dd/mm/aaaa): ")
 
-                                informacoes_corretas = True
-                                novo_convenio = {
-                                    "operadora": nome_operadora,
-                                    "numero_carteirinha": numero_carteirinha,
-                                    "inicio_vigencia": inicio_vigencia,
-                                    "validade": data_validade
-                                }
+                            if len(data_validade) < 8:
+                                print("Data de validade inválida")
+                                continue
 
-                                lista_convenios_medicos.append(novo_convenio)
+                            informacoes_corretas = True
+                            novo_convenio = {
+                                "operadora": nome_operadora,
+                                "numero_carteirinha": numero_carteirinha,
+                                "inicio_vigencia": inicio_vigencia,
+                                "validade": data_validade
+                            }
 
-                                print("Convênio adicionado à lista com sucesso!")
+                            lista_convenios_medicos.append(novo_convenio)
 
-                        case 3:
-                            print("\n\nVoltando.")
-                            break
+                            print("Convênio adicionado à lista com sucesso!")
 
-                        case _:
-                            print("Opção inválida.")
-                            continue
+                    case 3:
+                        print("\n\nVoltando.")
+                        break
 
-                case 3:
-                    print(f"Relatórios Médicos:"
-                          f"1 - Listar relatórios médicos;"
-                          f"2 - Adicionar relatório médico;"
-                          f"3 - Voltar")
+                    case _:
+                        print("Opção inválida.")
+                        continue
 
-                    opcao_relatorio_medico = int(input("Insira o número de sua escolha: "))
-                    match opcao_relatorio_medico:
-                        case 1:
-                            print("Lista de Relatórios Médicos: \n")
-                            for relatorio in lista_relatorios_medicos:
-                                print(f"--------------------------"
-                                      f"\nNome do(a) Médico(a): {relatorio.get("medico")};"
-                                      f"\nData de Emissão do Relatório: {relatorio.get("data_relatorio")};"
-                                      f"\nDescrição: {relatorio.get("descricao")};"
-                                      )
-                            print("--------------------------")
+            case 3:
+                print(f"\n\nRelatórios Médicos:"
+                      f"\n1 - Listar relatórios médicos;"
+                      f"\n2 - Adicionar relatório médico;"
+                      f"\n3 - Voltar")
 
-                        case 2:
-                            informacoes_corretas = False
+                opcao_relatorio_medico = int(input("Insira o número de sua escolha: "))
+                match opcao_relatorio_medico:
+                    case 1:
+                        print("Lista de Relatórios Médicos: \n")
+                        for relatorio in lista_relatorios_medicos:
+                            print(f"--------------------------"
+                                  f"\nNome do(a) Médico(a): {relatorio.get("medico")};"
+                                  f"\nData de Emissão do Relatório: {relatorio.get("data_relatorio")};"
+                                  f"\nDescrição: {relatorio.get("descricao")}"
+                                  )
+                        print("--------------------------")
 
-                            nome_medico = ""
-                            data_emissao = ""
-                            descricao = ""
+                    case 2:
+                        informacoes_corretas = False
 
-                            while not informacoes_corretas:
-                                nome_medico = input("Insira o nome do(a) Médico(a): ")
+                        nome_medico = ""
+                        data_emissao = ""
+                        descricao = ""
 
-                                if len(nome_medico.strip(" ")) < 1:
-                                    print("Nome inválido")
-                                    continue
+                        while not informacoes_corretas:
+                            nome_medico = input("Insira o nome do(a) Médico(a): ")
 
-                                data_emissao = input("Insira a Data de Emissão do Relatório: ")
+                            if len(nome_medico.strip(" ")) < 1:
+                                print("Nome inválido")
+                                continue
 
-                                if len(data_emissao) < 8:
-                                    print("Data de validade inválida")
-                                    continue
+                            data_emissao = input("Insira a Data de Emissão do Relatório (dd/mm/aaaa): ")
 
-                                descricao = input("Insira uma breve descrição do relatório: ")
+                            if len(data_emissao) < 8:
+                                print("Data de validade inválida")
+                                continue
 
-                                if len(descricao) < 2:
-                                    print("Relatório inválido, muito breve.")
-                                    continue
+                            descricao = input("Insira uma breve descrição do relatório: ")
 
-                                informacoes_corretas = True
-                                novo_relatorio = {
-                                    "medico": nome_medico,
-                                    "data_relatorio": data_emissao,
-                                    "descricao": descricao
-                                }
+                            if len(descricao) < 2:
+                                print("Relatório inválido, muito breve.")
+                                continue
 
-                                lista_relatorios_medicos.append(novo_relatorio)
+                            informacoes_corretas = True
+                            novo_relatorio = {
+                                "medico": nome_medico,
+                                "data_relatorio": data_emissao,
+                                "descricao": descricao
+                            }
 
-                                print("Relatório Médico adicionado à lista com sucesso!")
+                            lista_relatorios_medicos.append(novo_relatorio)
 
-                        case 3:
-                            print("\n\nVoltando.")
-                            break
+                            print("Relatório Médico adicionado à lista com sucesso!")
 
-                        case _:
-                            print("Opção inválida.")
-                            continue
+                    case 3:
+                        print("\n\nVoltando.")
+                        break
 
-                case 4:
-                    print("\n\nVoltando.")
-                    break
+                    case _:
+                        print("Opção inválida.")
+                        continue
 
-                case _:
-                    print("Opção inválida.")
-                    continue
+            case 4:
+                print("\n\nVoltando.")
+                break
+
+            case _:
+                print("Opção inválida.")
+                continue
 
 
+def checarInputSim(inputString):
+    if (
+        inputString.lower() == "sim"
+        or inputString.lower() == "s"
+        or inputString.lower() == "si"
+        or inputString.lower() == "yes"
+        or inputString.lower() == "ye"
+        or inputString.lower() == "y"
+    ):
+        return True
+    else:
+        return False
+
+
+def menu_ajuda():
+    while True:
+        print(f"Menu de Ajuda:"
+              f"\n\nSe o sistema não estiver carregando corretamente, tente atualizar a página, "
+              f"utilizar outro navegador ou verificar sua conexão com a internet."
+              f"\n\nPara ajuda personalizada, entre em contato com o suporte"
+              f"\nTelefone: (11) 2661-1048"
+              f"\nTelefone: (11) 2661-1561"
+              f"\nE-mail: ouvidoria.geral@hc.fm.usp.br")
+
+        voltar_para_menu = input("\nVoltar para o menu? (Sim/Não): ")
+        if checarInputSim(voltar_para_menu):
+            print("\n\nVoltando.")
+            break
+        else:
+            continue
 
 
 #Loop será infinito até o usuário voluntariamente sair
@@ -761,3 +791,15 @@ while True:
 
         case 5:
             menu_documentos_necessarios()
+
+        case 6:
+            menu_ajuda()
+
+        case 7:
+            print("Muito obrigado por utilizar o sistema de pacientes da HC, desenvolvido por estudantes da FIAP!")
+            print("Saindo...")
+            break
+
+        case _:
+            print("Opção inválida!")
+            continue
