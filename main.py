@@ -56,74 +56,74 @@ while not esta_logado:
     if checarInputNao(possui_registro):
         print("Certo, prosseguiremos com o processo de registro.\n")
 
-        #Variável de controle do while de registro
-        salvo = False
-
         #WHILE DE REGISTRO - SUPER IMPORTANTE!!!
-        while not salvo:
+        while not esta_logado:
             email_registro = input("Insira o seu email: ")
-            senha_registro = input("Insira a sua senha: ")
-
-            # Perfumaria
-            confirmar_senha = input(f"Seu email será: {email_registro} \nSua senha será: {senha_registro}\n\n Está "
-                                    f"correto? (Sim/Não): ")
-
-            if checarInputSim(confirmar_senha):
-                lista_contas_pacientes.append({
-                    "email": email_registro,
-                    "senha": senha_registro
-                })
-
-                print("Registro realizado com sucesso \n\n")
-                #Salva o email e a senha em variáveis, caso venham a ser úteis depois
-                meu_dado_email = email_registro
-                meu_dado_senha = senha_registro
-
-                salvo = True
-                esta_logado = True
-
-                break
-
-            else:
-                print("Entendido, tentaremos novamente.")
+            if not "@" in email_registro or " " in email_registro:
+                print("Email inválido, tente novamente.")
                 continue
+
+            senha_registro = input("Insira a sua senha (mínimo 5 caracteres, sem espaço): ")
+
+            if len(senha_registro) < 5 or " " in senha_registro:
+                print("Senha inválida, não use espaços e use no mínimo 5 caracteres.")
+                continue
+
+            lista_contas_pacientes.append({
+                "email": email_registro,
+                "senha": senha_registro
+            })
+            print("\nRegistro realizado com sucesso \n\n")
+
+            #Salva o email e a senha em variáveis, caso venham a ser úteis depois
+            meu_dado_email = email_registro
+            meu_dado_senha = senha_registro
+
+            esta_logado = True
+
+            break
 
     elif checarInputSim(possui_registro):
         print("Certo, efetuaremos a sua autenticação a seguir. \n")
 
-        #Variável de controle do while de login
-        conseguiu_logar = False
 
         #WHILE DE LOGIN - SUPER IMPORTANTE!!!
-        while not conseguiu_logar:
-            email_login = input("Insira o seu email: ")
-            senha_login = input("Insira a sua senha: ")
+        email_login = input("Insira o seu email: ")
 
-            #Se o tamanho da lista de contas for 0, a conta não existe (nenhuma existe)
-            if len(lista_contas_pacientes) == 0:
+        if not "@" in email_login or " " in email_login:
+            print("Email inválido, tente novamente.")
+            continue
+
+        senha_login = input("Insira a sua senha: ")
+
+        if len(senha_login) < 5 or " " in senha_login:
+            print("Senha inválida, não use espaços e use no mínimo 5 caracteres.")
+            continue
+
+        #Se o tamanho da lista de contas for 0, a conta não existe (nenhuma existe)
+        if len(lista_contas_pacientes) == 0:
+            print("Conta inexistente!")
+
+        #Itera sobre cada conta na lista de contas
+        for conta in lista_contas_pacientes:
+            #Checa se o email e a senha da conta da iteração atual coincidem com as informações informadas pelo usuário
+            if conta.get("email") == email_login and conta.get("senha") == senha_login:
+                print("Login realizado com sucesso! \n\n")
+
+                esta_logado = True
+                meu_dado_email = email_login
+                meu_dado_senha = senha_login
+                break
+
+            #Checa se o email coincide, mas a senha não.
+                #Isso significa que a conta existe, mas a senha está errada. Fala pro usuário e reseta o loop
+            elif conta.get("email") == email_login and conta.get("senha") != senha_login:
+                print("Senha incorreta! \n Tente novamente.")
+                break
+
+            #Se o email não coincidiu com alguma conta, ela não existe.
+            else:
                 print("Conta inexistente!")
-
-            #Itera sobre cada conta na lista de contas
-            for conta in lista_contas_pacientes:
-                #Checa se o email e a senha da conta da iteração atual coincidem com as informações informadas pelo usuário
-                if conta.get("email") == email_login and conta.get("senha") == senha_login:
-                    print("Login realizado com sucesso! \n\n")
-
-                    conseguiu_logar = True
-                    esta_logado = True
-                    meu_dado_email = email_login
-                    meu_dado_senha = senha_login
-                    break
-
-                #Checa se o email coincide, mas a senha não.
-                    #Isso significa que a conta existe, mas a senha está errada. Fala pro usuário e reseta o loop
-                elif conta.get("email") == email_login and conta.get("senha") != senha_login:
-                    print("Senha incorreta! \n Tente novamente.")
-                    break
-
-                #Se o email não coincidiu com alguma conta, ela não existe.
-                else:
-                    print("Conta inexistente!")
 
 
 #Lista que simula o "banco de dados", guarda todos os agendamentos
@@ -157,8 +157,6 @@ def converter_itens_em_horario_agendamento(agendamento):
 
 #Método que mostra a lista de opções do menu de agendamentos
 def menu_agendamentos():
-    opcao_agendamento = 0
-
     print("===================================")
     #Ficará rodando até ser quebrado manualmente com um break
     while True:
