@@ -12,6 +12,9 @@ esta_logado = False
         # "senha": senha_do_paciente
 lista_contas_pacientes = []
 
+'''
+    Informações do paciente, estariam num banco de dados num sistema real
+'''
 meu_dado_rg = 123456789
 meu_dado_cpf = 12345678909
 meu_dado_email = ""
@@ -72,7 +75,7 @@ while not esta_logado:
                 })
 
                 print("Registro realizado com sucesso \n\n")
-                #Salva o email logado numa variável, caso venha a ser útil depois
+                #Salva o email e a senha em variáveis, caso venham a ser úteis depois
                 meu_dado_email = email_registro
                 meu_dado_senha = senha_registro
 
@@ -123,20 +126,6 @@ while not esta_logado:
                     print("Conta inexistente!")
 
 
-#Método que mostra a lista de opções do menu e retorna um input para escolha
-def menu_paciente_escolha():
-    print("\n\nMenu do Paciente:"
-          "\n1 - Agendamentos;"
-          "\n2 - Meus Dados;"
-          "\n3 - Exames;"
-          "\n4 - Prescrições;"
-          "\n5 - Documentos Necessários;"
-          "\n6 - Ajuda;"
-          "\n7 - Desconectar."
-          "\n\n")
-
-    return int(input("Insira o número de sua escolha: "))
-
 #Lista que simula o "banco de dados", guarda todos os agendamentos
 '''
     EXEMPLO DE AGENDAMENTO CASO QUEIRA DEIXAR ALGUNS DE EXEMPLO
@@ -166,7 +155,7 @@ def converter_itens_em_horario_agendamento(agendamento):
     return f"{agendamento.get("hora")}:{agendamento.get("minuto")}"
 '''Fim das funções complicadas'''
 
-#Função de menu dos agendamentos
+#Método que mostra a lista de opções do menu de agendamentos
 def menu_agendamentos():
     opcao_agendamento = 0
 
@@ -184,6 +173,7 @@ def menu_agendamentos():
         match opcao_agendamento:
             case 1:
                 print("Lista de Agendamentos: \n")
+                #Itera sobre cada agendamento na lista de agendamentos e os mostra de forma organizada utilizando o get()
                 for agendamento in lista_agendamentos:
                     print(f"--------------------------"
                           f"\nMédico: {agendamento.get("medico")};"
@@ -203,6 +193,7 @@ def menu_agendamentos():
                 medico = ""
                 local = ""
 
+                #Looping que ocorrerá até todas as informações serem válidas
                 while not informacoes_corretas:
                     print(f"\nNovo agendamento: \n")
                     dia = int(input("Por favor, insira o dia do agendamento (1 a 31): "))
@@ -213,6 +204,12 @@ def menu_agendamentos():
                     medico = input("O nome do médico responsável pela consulta: ")
                     local = input("E, por fim, o local onde a consulta ocorrerá: ")
 
+                    '''
+                        - Não tem como o dia nem o mês serem negativos ou maiores do que o possível
+                        - Não tem como agendar num ano que já passou
+                        - A hora não pode ser negativa e nem passar de um dia
+                        - Os minutos não podem ser negativos e nem passarem de uma hora
+                    '''
                     if (dia < 1 or dia > 31
                         or mes < 1 or mes > 12
                         or ano < 2025
@@ -223,6 +220,7 @@ def menu_agendamentos():
 
                     informacoes_corretas = True
 
+                # Dictionary do novo agendamento
                 novo_agendamento = {
                     "dia": dia,
                     "mes": mes,
@@ -233,6 +231,7 @@ def menu_agendamentos():
                     "local": local
                 }
 
+                # Adicionando o novo agendamento na lista de agendamentos
                 lista_agendamentos.append(novo_agendamento)
 
                 print("Agendamento salvo com sucesso!")
@@ -240,16 +239,22 @@ def menu_agendamentos():
             case 3:
                 print("\nRemover Agendamento: ")
 
+                #Até um agendamento ser escolhido para ser deletado, o looping se manterá
                 agendamento_escolhido = False
                 while not agendamento_escolhido:
+                    #Se a lista de agendamentos tiver tamanho 0, não dá pra deletar nenhum agendamento
                     if len(lista_agendamentos) == 0:
                         print("Você não possui nenhum agendamento!")
                     else:
+                        #O id serve para o usuário escolher o agendamento a ser deletado, começa do 1 apesar das listas
+                            #começarem do 0, porque faz mais sentido aos pacientes
                         id_agendamento = 1
+                        #Itera sobre cada agendamento na lista de agendamentos, e mostra cada um com um id e suas datas e o médico
                         for agendamento in lista_agendamentos:
                             print(f"--------------------------"
                                   f"\n{id_agendamento} - {converter_itens_em_data_agendamento(agendamento)} — {converter_itens_em_horario_agendamento(agendamento)}"
                                   f"\nMédico: {agendamento.get("medico")}")
+                            #Próximo agendamento terá um id diferente, nesse caso, superior
                             id_agendamento += 1
 
                     print("--------------------------\n\n"
@@ -257,16 +262,20 @@ def menu_agendamentos():
 
                     selecao_deletar_agendamento = int(input("Insira o número identificador do agendamento que deseja remover: "))
 
+                    #Se for 0, o paciente não quer deletar nenhum, então voltar e quebrar o looping.
                     if selecao_deletar_agendamento == 0:
                         agendamento_escolhido = True
                         continue
 
+                    #Se o seletor for menor que 0, ou maior que o tamanho da lista de agendamentos, ele é inválido
                     elif selecao_deletar_agendamento < 0 or selecao_deletar_agendamento > len(lista_agendamentos):
                         print("Identificador inválido, tente novamente.")
                         continue
 
+                    #Se tudo estiver correto, dar pop no indíce selecionado (subtraindo 1, porque a lista começa do 0)
                     else:
                         lista_agendamentos.pop(selecao_deletar_agendamento - 1)
+                        #Quebrar o looping após o apagamento
                         agendamento_escolhido = True
 
             case 4:
@@ -277,8 +286,12 @@ def menu_agendamentos():
                 print("\nOpção inválida!")
                 continue
 
+#Método que mostra a lista de opções do menu de meus dados
 def menu_meus_dados():
+    #Essas variáveis são declaradas fora da função, mas são alteradas dentro dela, essa linha é necessária
     global meu_dado_rg, meu_dado_cpf, meu_dado_email, meu_dado_senha
+
+    #O looping ocorrerá até ser manualmente interrompido
     while True:
         print(f"\nMeus Dados:"
               f"\nRG: {meu_dado_rg};"
@@ -296,6 +309,8 @@ def menu_meus_dados():
         match opcao_meus_dados:
             case 1:
                 novo_rg = int(input("Insira o seu novo RG (min. 9 digitos, máx. 10): "))
+
+                #Mínimo de 9 digitos e máximo de 10
                 if len(str(novo_rg)) < 9 or len(str(novo_rg)) > 10:
                     print("\nNovo RG é inválido (maior que 10 ou menor que 9 digitos)")
                     continue
@@ -305,6 +320,8 @@ def menu_meus_dados():
 
             case 2:
                 novo_cpf = int(input("Insira o seu novo CPF (min. 11 digitos): "))
+
+                # Mínimo de 11 digitos
                 if len(str(novo_cpf)) < 11:
                     print("\nNovo CPF é inválido (menor que 11 digitos)")
                     continue
@@ -314,6 +331,8 @@ def menu_meus_dados():
 
             case 3:
                 novo_email = input("Insira o seu novo email: ")
+
+                # É necessário ter um @ no email, para ser considerado um
                 if not "@" in novo_email:
                     print("\nNovo email é inválido")
                     continue
@@ -323,6 +342,8 @@ def menu_meus_dados():
 
             case 4:
                 nova_senha = input("Insira a sua nova senha (Sem espaços, minímo 5 digitos): ")
+
+                # Se, houver espaços ou a senha tiver menos de 5 caracteres, ela é inválida
                 if " " in nova_senha or len(nova_senha) < 5:
                     print("\nNova senha é inválida, verifique se você utilizou um espaço ou se ela tem no mínimo 5 digitos")
                     continue
@@ -375,6 +396,7 @@ lista_exames_feitos = [
     }
 ]
 
+#Método que mostra a lista de opções do menu de exames
 def menu_exames():
     while True:
         print(f"\nMenu exames:"
@@ -388,6 +410,8 @@ def menu_exames():
         match opcao_exames:
             case 1:
                 print("Lista de Exames a serem Agendados: \n")
+
+                #Itera sobre os exames na lista de exames e os mostra de forma organizada
                 for exame in lista_exames:
                     print(f"--------------------------"
                           f"\nTipo de Atendimento: {exame.get("tipo_atendimento")};"
@@ -401,31 +425,41 @@ def menu_exames():
                 tipo_atendimento = ""
                 nome_exame = ""
 
+                #Só sairá do looping quando as informações do novo exame forem válidas
                 while not informacoes_corretas:
                     tipo_atendimento = input("Insira o tipo de atendimento (Presencial/Online/Híbrido): ")
 
+                    '''
+                        Validação básica e passível a melhoria do tipo de atendimento
+                    '''
                     if not "prese" in tipo_atendimento.lower() and not "onli" in tipo_atendimento.lower() and not "hibr" in tipo_atendimento.lower() and not "híbr" in tipo_atendimento.lower():
                         print("Tipo de atendimento inválido")
                         continue
 
                     nome_exame = input("Insira o nome do exame (Min. 3 caracteres): ")
 
+                    # Se o nome do exame tiver menos de 3 caracteres, ele provavelmente está inválido, então o mínimo é 3
                     if len(nome_exame) < 3:
                         print("Nome do exame deve ter no mínimo 3 caracteres!")
                         continue
 
                     informacoes_corretas = True
+
+                    #Salva o novo exame num dictionary
                     novo_exame = {
                         "tipo_atendimento": tipo_atendimento,
                         "nome_exame": nome_exame
                     }
 
+                    #Adiciona o novo exame à lista de exames
                     lista_exames.append(novo_exame)
 
                     print("Exame adicionado a lista com sucesso!")
 
             case 3:
                 print("Lista de Exames Feitos: \n")
+
+                #Itera sobre a lista de exames feitos e os mostra de forma organizada
                 for exame_feito in lista_exames_feitos:
                     print(f"--------------------------"
                           f"\nTipo de Atendimento: {exame_feito.get("tipo_atendimento")};"
@@ -438,15 +472,23 @@ def menu_exames():
                 print("\nRemover Exame Marcado: ")
 
                 exame_escolhido = False
+
+                #Enquanto um exame não for escolhido para deletar, o loop continuará
                 while not exame_escolhido:
+                    #Se a lista de exames tiver tamanho 0, não é possível deletar nenhum visto que não há nenhum
                     if len(lista_exames) == 0:
                         print("Você não possui nenhum exame a ser agendado!")
                     else:
+                        #Id para seleção por parte do paciente, começa no 1 por convenções sociais, mas a lista começa com 0
                         id_exame = 1
+
+                        #Itera sobre a lista de exames, e mostra cada um com um id para ser selecionado
                         for exame in lista_exames:
                             print(f"--------------------------"
                                   f"\n{id_exame} - Nome do exame: {exame.get("nome_exame")}"
                                   f"\nTipo de Atendimento: {exame.get("tipo_atendimento")}")
+
+                            #O próximo exame a ser mostrado terá um id diferente, nesse caso maior
                             id_exame += 1
 
                     print("--------------------------\n\n"
@@ -455,15 +497,18 @@ def menu_exames():
                     selecao_deletar_exame = int(
                         input("Insira o número identificador do exame a ser agendado que deseja remover: "))
 
+                    #Paciente desisitu de deletar um exame, voltar e quebrar o loop
                     if selecao_deletar_exame == 0:
                         exame_escolhido = True
                         continue
 
+                    #Se o id selecionado pelo usuário for negativo ou maior que a quantidade de exames, é inválido
                     elif selecao_deletar_exame < 0 or selecao_deletar_exame > len(lista_exames):
                         print("Identificador inválido, tente novamente.")
                         continue
 
                     else:
+                        #Remover o exame na posição selecionada pelo usuário (subtrai 1, porque a lista começa no indíce 0)
                         lista_exames.pop(selecao_deletar_exame - 1)
                         exame_escolhido = True
 
@@ -513,7 +558,7 @@ lista_prescricoes_inativas = [
     },
 ]
 
-
+#Método que mostra a lista de opções do menu de prescrições
 def menu_prescricoes():
     while True:
         print(f"\nMenu prescrições:"
@@ -525,6 +570,7 @@ def menu_prescricoes():
         match opcao_prescricoes:
             case 1:
                 print("Lista de Prescrições Ativas: \n")
+                #Itera sobre a lista de prescrições ativas e mostra cada uma de forma organizada
                 for prescricao_ativa in lista_prescricoes_ativas:
                     print(f"--------------------------"
                           f"\nNome do medicamento: {prescricao_ativa.get("nome_medicamento")};"
@@ -533,6 +579,7 @@ def menu_prescricoes():
                           )
                 print("--------------------------")
 
+            #Itera sobre a lista de prescrições inativas e mostra cada uma de forma organizada
             case 2:
                 print("Lista de Prescrições Inativas: \n")
                 for prescricao_inativa in lista_prescricoes_inativas:
@@ -639,6 +686,7 @@ lista_relatorios_medicos = [
     }
 ]
 
+#Método que mostra a lista de opções do menu de documentos necessários
 def menu_documentos_necessarios():
     while True:
         print(f"\nMenu Documentos Necessários:"
@@ -660,6 +708,7 @@ def menu_documentos_necessarios():
                 match opcao_carteirinha_vacinacao:
                     case 1:
                         print("Lista de Vacinações feitas: \n")
+                        #Itera sobre a lista de vacinações feitas anteriormente e mostra cada uma de forma organizada
                         for vacinacao in lista_vacinacoes_anteriores:
                             print(f"--------------------------"
                                   f"\nVacina: {vacinacao.get("vacina")};"
@@ -675,32 +724,39 @@ def menu_documentos_necessarios():
                         data_aplicacao = ""
                         data_validade = ""
 
+                        #Loop ocorrerá enquanto as informações para uma nova vacinação forem inválidas
                         while not informacoes_corretas:
                             nome_vacina = input("Insira o nome da Vacina: ")
 
+                            #Se, tirando todos os espaçoes, o nome da vacina tiver 0 caracteres, ele é inválido
                             if len(nome_vacina.strip(" ")) < 1:
                                 print("Nome inválido")
                                 continue
 
                             data_aplicacao = input("Insira a data de aplicação da vacina (dd/mm/aaaa): ")
 
+                            #A data, por ser uma string, precisa conter 8 caracteres no minimo (barras incluidas)
                             if len(data_aplicacao) < 8:
                                 print("Data de aplicação inválida")
                                 continue
 
                             data_validade = input("Insira a data de validade da vacina (dd/mm/aaaa): ")
 
+                            # A data, por ser uma string, precisa conter 8 caracteres no minimo (barras incluidas)
                             if len(data_aplicacao) < 8:
                                 print("Data de validade inválida")
                                 continue
 
                             informacoes_corretas = True
+
+                            # Salva a nova vacinação num dictionary
                             nova_vacinacao = {
                                 "vacina": nome_vacina,
                                 "data_aplicacao": data_aplicacao,
                                 "validade": data_validade
                             }
 
+                            # Adiciona o dictionary da nova vacinação na lista de vacinações
                             lista_vacinacoes_anteriores.append(nova_vacinacao)
 
                             print("Vacina adicionada à lista com sucesso!")
@@ -723,6 +779,7 @@ def menu_documentos_necessarios():
                 match opcao_convenio_medico:
                     case 1:
                         print("Lista de Convênios Médicos: \n")
+                        #Itera sobre a lista de convênios médicos e mostra cada um de forma organizada
                         for convenio in lista_convenios_medicos:
                             print(f"--------------------------"
                                   f"\nOperadora: {convenio.get("operadora")};"
@@ -740,21 +797,25 @@ def menu_documentos_necessarios():
                         inicio_vigencia = ""
                         data_validade = ""
 
+                        #Enquanto as informações não forem válidas, o loop continuará acontecendo
                         while not informacoes_corretas:
                             nome_operadora = input("Insira o nome da Operadora: ")
 
+                            #Se, sem espaços, o nome da operadora tiver 0 caracteres, ele é inválido
                             if len(nome_operadora.strip(" ")) < 1:
                                 print("Nome inválido")
                                 continue
 
                             numero_carteirinha = input("Insira o número da carteirinha: ")
 
+                            #Se o número da carteirinha tiver menos que 3 caracteres, ele é inválido
                             if len(numero_carteirinha) < 3:
                                 print("Número da carteirinha inválido")
                                 continue
 
                             inicio_vigencia = input("Insira a data de início da vigência de carteirinha (dd/mm/aaaa): ")
 
+                            #Se o ano de inicio tiver menos que 8 caracteres, ele é invalido (deve incluir as barras)
                             if len(inicio_vigencia) < 8:
                                 print("Data de validade inválida")
                                 continue
@@ -762,11 +823,14 @@ def menu_documentos_necessarios():
                             data_validade = input(
                                 "Insira a data de validade da carteirinha (dd/mm/aaaa): ")
 
+                            # Se o ano de validade tiver menos que 8 caracteres, ele é invalido (deve incluir as barras)
                             if len(data_validade) < 8:
                                 print("Data de validade inválida")
                                 continue
 
                             informacoes_corretas = True
+
+                            #Salva o novo convênio num dictionary
                             novo_convenio = {
                                 "operadora": nome_operadora,
                                 "numero_carteirinha": numero_carteirinha,
@@ -774,6 +838,7 @@ def menu_documentos_necessarios():
                                 "validade": data_validade
                             }
 
+                            #Adiciona o dictionary do novo convênio na lista de convênios
                             lista_convenios_medicos.append(novo_convenio)
 
                             print("Convênio adicionado à lista com sucesso!")
@@ -796,6 +861,7 @@ def menu_documentos_necessarios():
                 match opcao_relatorio_medico:
                     case 1:
                         print("Lista de Relatórios Médicos: \n")
+                        #Itera sobre os relatórios na lista de relatórios médicos e mostra-os de forma organizada
                         for relatorio in lista_relatorios_medicos:
                             print(f"--------------------------"
                                   f"\nNome do(a) Médico(a): {relatorio.get("medico")};"
@@ -811,32 +877,39 @@ def menu_documentos_necessarios():
                         data_emissao = ""
                         descricao = ""
 
+                        #O loop ocorrerá enquanto as informações não forem válidas
                         while not informacoes_corretas:
                             nome_medico = input("Insira o nome do(a) Médico(a): ")
 
+                            #Se, removendo os espaços, o nome tiver 0 caracteres, ele é inválido
                             if len(nome_medico.strip(" ")) < 1:
                                 print("Nome inválido")
                                 continue
 
                             data_emissao = input("Insira a Data de Emissão do Relatório (dd/mm/aaaa): ")
 
+                            # Se a data de emissão tiver menos que 8 caracteres, ela é invalida (deve incluir as barras)
                             if len(data_emissao) < 8:
                                 print("Data de validade inválida")
                                 continue
 
                             descricao = input("Insira uma breve descrição do relatório: ")
 
+                            #Se a descrição tiver menos que 2 caracteres, ela é inválida
                             if len(descricao) < 2:
                                 print("Relatório inválido, muito breve.")
                                 continue
 
                             informacoes_corretas = True
+
+                            #Salva o novo relatório num dictionary
                             novo_relatorio = {
                                 "medico": nome_medico,
                                 "data_relatorio": data_emissao,
                                 "descricao": descricao
                             }
 
+                            #Salva o dictionary na lista de relatórios
                             lista_relatorios_medicos.append(novo_relatorio)
 
                             print("Relatório Médico adicionado à lista com sucesso!")
@@ -857,7 +930,7 @@ def menu_documentos_necessarios():
                 print("Opção inválida.")
                 continue
 
-
+#Método que mostra o menu de ajuda
 def menu_ajuda():
     while True:
         print(f"Menu de Ajuda:"
@@ -873,9 +946,11 @@ def menu_ajuda():
             print("\n\nVoltando.")
             break
         else:
+            #Se o paciente não quiser voltar para o menu principal, ele verá o menu de ajuda novamente
             continue
 
-def menuPacienteEscolha():
+#Método que mostra a lista de opções do menu e retorna um input para escolha
+def menu_paciente_escolha():
     print("\n\nMenu do Paciente:"
           "\n1 - Agendamentos;"
           "\n2 - Meus Dados;"
@@ -883,7 +958,8 @@ def menuPacienteEscolha():
           "\n4 - Prescrições;"
           "\n5 - Documentos Necessários;"
           "\n6 - Ajuda;"
-          "\n7 - Desconectar.")
+          "\n7 - Desconectar."
+          "\n\n")
 
     return int(input("Insira o número de sua escolha: "))
 
