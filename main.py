@@ -10,7 +10,12 @@ esta_logado = False
     # Um registro seria da seguinte forma:
         # "email": email_do_paciente,
         # "senha": senha_do_paciente
-lista_contas_pacientes = []
+lista_contas_pacientes = [
+    {
+        "email": "teste@gmail.com",
+        "senha": "teste123"
+    }
+]
 
 '''
     Informações do paciente, estariam num banco de dados num sistema real
@@ -140,7 +145,24 @@ while not esta_logado:
     },
 '''
 lista_agendamentos = [
-
+    {
+        "dia": 25,
+        "mes": 12,
+        "ano": 2026,
+        "hora": 12,
+        "minuto": 30,
+        "medico": "Dr. Pedro",
+        "local": "Hospital das Clínicas"
+    },
+    {
+        "dia": 1,
+        "mes": 6,
+        "ano": 2025,
+        "hora": 8,
+        "minuto": 0,
+        "medico": "Dr. Pedro",
+        "local": "Hospital das Clínicas"
+    }
 ]
 
 '''
@@ -384,8 +406,8 @@ lista_exames = [
 lista_exames_feitos = [
     {
         "tipo_atendimento": "Presencial",
-        "nome_exame": "Eletrocardiograma",
-        "resultado_exame": "Estável"
+        "nome_exame": "Ultrassom",
+        "resultado_exame": "Satisfatório"
     },
     {
         "tipo_atendimento": "Online",
@@ -534,11 +556,6 @@ lista_prescricoes_ativas = [
         "data_validade": "11/05/2025",
     },
     {
-        "nome_medicamento": "Amoxicilina 500mg",
-        "data_inicio": "04/05/2025",
-        "data_validade": "10/05/2025"
-    },
-    {
         "nome_medicamento": "Ibuprofeno 200mg",
         "data_inicio": "05/05/2025",
         "data_validade": "09/05/2025"
@@ -608,11 +625,6 @@ def menu_prescricoes():
 '''
 lista_vacinacoes_anteriores = [
     {
-        "vacina": "Hepatite B",
-        "data_aplicacao": "10/03/2025",
-        "validade": "10/03/2035"
-    },
-    {
         "vacina": "Febre Amarela",
         "data_aplicacao": "15/02/2020",
         "validade": "15/02/2030"
@@ -646,12 +658,6 @@ lista_convenios_medicos = [
         "numero_carteirinha": "BRD987654321",
         "inicio_vigencia": "15/06/2022",
         "validade": "14/06/2024"
-    },
-    {
-        "operadora": "Amil",
-        "numero_carteirinha": "AML11223344",
-        "inicio_vigencia": "20/09/2024",
-        "validade": "19/09/2026"
     }
 ]
 
@@ -670,18 +676,13 @@ lista_relatorios_medicos = [
     {
         "medico": "Dra. Ana Paula Ribeiro",
         "data_relatorio": "12/03/2024",
-        "descricao": "Relato de dor abdominal persistente. Solicitado ultrassom e exames laboratoriais."
+        "descricao": "Relato de dor abdominal persistente. Solicitado ultrassom."
     },
     {
         "medico": "Dr. Carlos Henrique Silva",
         "data_relatorio": "05/11/2023",
         "descricao": "Acompanhamento pós-operatório de apendicectomia. Evolução dentro do esperado."
     },
-    {
-        "medico": "Dra. Juliana Mendes",
-        "data_relatorio": "20/07/2022",
-        "descricao": "Crise de enxaqueca frequente. Iniciada medicação preventiva e encaminhamento para neurologista."
-    }
 ]
 
 #Método que mostra a lista de opções do menu de documentos necessários
