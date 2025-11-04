@@ -3,7 +3,6 @@ import time
 from datetime import datetime
 
 import re as regex
-import oracledb
 import requests
 import json
 
