@@ -1,119 +1,14 @@
-import oracledb
 import random
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 
-#Método SUPER IMPORTANTE que gera uma nova conexão ao Banco de Dados
-def getConexao():
-    try:
-        conexao = oracledb.connect(
-            user="rm562682",
-            password="270906",
-            host="oracle.fiap.com.br",
-            port="1521",
-            service_name="orcl"
-        )
+import re as regex
+import oracledb
+import requests
+import json
 
-    except Exception as e:
-        print(f'Encontramos um problema ao acessar o banco de dados, tente novamente mais tarde!: {e}')
+api_url = "http://localhost:8080"
 
-    return conexao
-
-#Método que cria as tabelas do banco de dados se ainda não existem
-def criarTabelasBancoDados(conexao):
-    cursor = conexao.cursor()
-
-    try:
-        codigo_sql = """
-            create table Instituicao(
-            id_instituicao int primary key not null,
-            nm_razao_social varchar2(150) unique not null,
-            nm_fantasia varchar2(100) not null,
-            ds_setor varchar(100) not null,
-            num_cnpj varchar(20) unique not null,
-            ds_endereco varchar2(250) not null
-        );
-         
-        create table Medico(
-            id_medico int primary key not null,
-            nm_medico varchar2(150) unique not null,
-            ds_sexo_medico varchar2(10) not null,
-            ds_setor_medico varchar(100) not null,
-            num_carga_horaria int not null check (num_carga_horaria > 10 and num_carga_horaria <  50),
-            vl_hora float not null check (vl_hora > 0),
-            fk_id_instituicao int,
-            FOREIGN KEY (fk_id_instituicao) REFERENCES Instituicao(id_instituicao)
-        );
-         
-        create table Paciente(
-            id_paciente int primary key,
-            num_tel varchar2(25) not null,
-            ds_endereco varchar2(300) not null,
-            nm_paciente varchar2(250) not null,
-            num_idade int not null,
-            ds_sexo_paciente varchar2(10) not null,
-            num_altura float not null,
-            num_peso float not null,
-            ds_rg varchar2(15) unique not null,
-            ds_cpf varchar2(14) unique not null
-        );
-         
-        create table Agendamento(
-            id_agendamento int primary key,
-            dt_consulta date not null,
-            hr_consulta varchar(5) not null,
-            fk_id_medico int,
-            FOREIGN KEY (fk_id_medico) REFERENCES Medico(id_medico),
-            fk_id_instituicao int,
-            FOREIGN KEY (fk_id_instituicao) REFERENCES Instituicao(id_instituicao),
-            fk_id_paciente int,
-            FOREIGN KEY (fk_id_paciente) REFERENCES Paciente(id_paciente)
-        );
-         
-        create table Relatorio_Medico(
-            id_relatorio_medico int primary key,
-            dt_relatorio date not null,
-            ds_relatorio varchar2(500) not null,
-            fk_id_medico int,
-            FOREIGN KEY (fk_id_medico) REFERENCES Medico(id_medico),
-            fk_id_paciente int,
-            FOREIGN KEY (fk_id_paciente) REFERENCES Paciente(id_paciente)
-        );
-         
-        create table Convenio(
-            id_convenio int primary key,
-         
-            nm_operadora varchar2(250) unique not null,
-            num_carteirinha varchar(40) not null,
-            dt_inicio date not null,
-            dt_validade date not null,
-            fk_id_paciente int,
-            FOREIGN KEY (fk_id_paciente) REFERENCES Paciente(id_paciente)
-        );
-        
-        create table Conta_Paciente(
-            id_conta_paciente int primary key,
-            ds_email varchar(50) unique not null,
-            ds_senha varchar(15) not null,
-            fk_id_paciente int,
-            FOREIGN KEY (fk_id_paciente) REFERENCES Paciente(id_paciente),
-            fk_id_convenio int,
-            FOREIGN KEY (fk_id_convenio) REFERENCES Convenio(id_convenio)
-        );
-        """
-
-        cursor.execute(codigo_sql)
-        print("Todas as tabelas foram criadas com sucesso!")
-
-    except oracledb.Error as error:
-        #ORA-00955 é um erro que indica que a tabela já existe, logo não precisa nem avisar
-            #Só fale que deu um erro na criação quando o erro for algum outro
-        if not "ORA-00955" in str(error):
-            print(f'Erro na criação das tabelas: {error}')
-
-    finally:
-        if conexao:
-            conexao.close()
 
 # Função para checar se um input é sim. É para evitar colocar ifs gigantes por todo o código.
 def checarInputSim(inputString):
@@ -147,336 +42,182 @@ def checarInputNao(inputString):
 
 #Função que cadastra o convênio médico do paciente no banco de dados
 def criarConvenioMedico(convenio, id_paciente):
-    def gerarNovoIdConvenio():
-        conexao_id = getConexao()
-
-        if not conexao_id:
-            return False
-
-        try:
-            cursor_id = conexao_id.cursor()
-            sql_id = """select MAX(id_convenio) from Convenio"""
-            cursor_id.execute(sql_id)
-
-            maior_id = cursor_id.fetchone()
-
-            return (maior_id[0] or 0) + 1
-
-        except oracledb.Error as e:
-            print(f'\nErro ao conectar ao Banco de Dados: {e}')
-        finally:
-            if conexao_id:
-                conexao_id.close()
-
-    conexao = getConexao()
-
-    if not conexao:
-        return
-
     try:
-        cursor = conexao.cursor()
-        sql = """
-                INSERT INTO Convenio (id_convenio, nm_operadora, num_carteirinha, dt_inicio, dt_validade, fk_id_paciente)
-                VALUES (:id_convenio, :nm_operadora, :num_carteirinha, :dt_inicio, :dt_validade, :fk_id_paciente)
-            """
-
-        # Data de agora
-        data_agora = datetime.now()
-
-        # "Formato SQL" = só a data (ano-mes-dia)
-        data_formatada_sql = data_agora.date()
-
-        # Data em 3 anos (365 dias * 3)
-        data_em_tres_anos = data_agora + timedelta(days=3 * 365)
-
-        data_em_tres_anos_formatada_sql = data_em_tres_anos.date()
-
-        id_convenio = gerarNovoIdConvenio()
-
-        cursor.execute(sql, {
-            'id_convenio': id_convenio,
-            'nm_operadora': convenio["operadora"],
-            'num_carteirinha': convenio["codigo"],
-            'dt_inicio': data_formatada_sql,
-            'dt_validade': data_em_tres_anos_formatada_sql,
-            'fk_id_paciente': id_paciente
+        response_api = requests.post(f"{api_url}/convenio_medico", json={
+            "operadora": convenio["operadora"],
+            "numeroCarteirinha": convenio["codigo"],
+            "idPaciente":id_paciente
         })
-        conexao.commit()
-        print(f'Convênio cadastrado com sucesso!')
 
-        return id_convenio
-
-    except oracledb.Error as e:
-        print(f'\nErro ao cadastrar o convênio: {e}')
-        conexao.rollback()
-    finally:
-        if conexao:
-            conexao.close()
+        return response_api.json()
+    except requests.exceptions.RequestException as erro:
+        print(f'Erro na requisição: {erro}')
+        return None
+    except Exception as e:
+        print(f'Erro: {e}')
+        return None
 
 #Função que cadastra o perfil médico do paciente no banco de dados
 def criarPerfilPaciente(perfil_paciente):
-    def gerarNovoIdPaciente():
-        conexao_id = getConexao()
-
-        if not conexao_id:
-            return False
-
-        try:
-            cursor_id = conexao_id.cursor()
-            sql_id = """select MAX(id_paciente) from Paciente"""
-            cursor_id.execute(sql_id)
-
-            maior_id = cursor_id.fetchone()
-
-            return (maior_id[0] or 0) + 1
-
-        except oracledb.Error as e:
-            print(f'\nErro ao conectar ao Banco de Dados: {e}')
-        finally:
-            if conexao_id:
-                conexao_id.close()
-
-    conexao = getConexao()
-
-    if not conexao:
-        return
-
     try:
-        cursor = conexao.cursor()
-        sql = """
-                INSERT INTO Paciente (id_paciente, num_tel, ds_endereco, nm_paciente, num_idade, ds_sexo_paciente, num_altura, num_peso, ds_rg, ds_cpf)
-                VALUES (:id_paciente, :num_tel, :ds_endereco, :nm_paciente, :num_idade, :ds_sexo_paciente, :num_altura, :num_peso, :ds_rg, :ds_cpf)
-            """
-
-        stringEndereco = f"{perfil_paciente["endereco"]["logradouro"]} {perfil_paciente["endereco"]["numero"]} - {perfil_paciente["endereco"]["bairro"]}, {perfil_paciente["endereco"]["cidade"]} - {perfil_paciente["endereco"]["cep"]}"
-
-        id_paciente = gerarNovoIdPaciente()
-
-        cursor.execute(sql, {
-            'id_paciente': id_paciente,
-            'num_tel': perfil_paciente["telefone"],
-            'ds_endereco': stringEndereco,
-            'nm_paciente': perfil_paciente["nome_completo"],
-            'num_idade': perfil_paciente["idade"],
-            'ds_sexo_paciente': perfil_paciente["sexo"],
-            'num_altura': perfil_paciente["altura"],
-            'num_peso': perfil_paciente["peso"],
-            'ds_rg': perfil_paciente["rg"],
-            'ds_cpf': perfil_paciente["cpf"]
+        response_api = requests.post(f"{api_url}/paciente", json={
+            "nomePaciente": perfil_paciente["nome_completo"],
+            "idade": perfil_paciente["idade"],
+            "altura": perfil_paciente["altura"],
+            "peso": perfil_paciente["peso"],
+            "rg": perfil_paciente["rg"],
+            "cpf": perfil_paciente["cpf"],
+            "telefone": perfil_paciente["telefone"],
+            "endereco": {
+                "logradouro": perfil_paciente["endereco"]["logradouro"],
+                "numero": perfil_paciente["endereco"]["numero"],
+                "bairro": perfil_paciente["endereco"]["bairro"],
+                "cidade": perfil_paciente["endereco"]["cidade"],
+                "cep": perfil_paciente["endereco"]["cep"]
+            },
+            "sexo": perfil_paciente["sexo"]
         })
-        conexao.commit()
+
         print(f'Paciente cadastrado com sucesso!')
 
-        perfil_paciente["id_paciente"] = id_paciente
+        perfil_paciente["id_paciente"] = response_api.json()
 
         return perfil_paciente
+    except requests.exceptions.RequestException as erro:
+        print(f'Erro na requisição: {erro}')
+        return None
+    except Exception as e:
+        print(f'Erro: {e}')
+        return None
 
-    except oracledb.Error as e:
-        print(f'\nErro ao cadastrar o paciente: {e}')
-        conexao.rollback()
-    finally:
-        if conexao:
-            conexao.close()
 
 #Função que cadastra a conta do paciente no banco de dados
 def criarContaPaciente(dadosPaciente):
-    def gerarNovoIdContaPaciente():
-        conexao_id = getConexao()
-
-        if not conexao_id:
-            return False
-
-        try:
-            cursor_id = conexao_id.cursor()
-            sql_id = """select MAX(id_conta_paciente) from Conta_Paciente"""
-            cursor_id.execute(sql_id)
-
-            maior_id = cursor_id.fetchone()
-
-            return (maior_id[0] or 0) + 1
-
-        except oracledb.Error as e:
-            print(f'\nErro ao conectar ao Banco de Dados: {e}')
-        finally:
-            if conexao_id:
-                conexao_id.close()
-
-    conexao = getConexao()
-
-    if not conexao:
-        return
-
     try:
-        cursor = conexao.cursor()
-        sql = """
-                INSERT INTO Conta_Paciente (id_conta_paciente, ds_email, ds_senha, fk_id_paciente, fk_id_convenio)
-                VALUES (:id_conta_paciente, :ds_email, :ds_senha, :fk_id_paciente, :fk_id_convenio)
-            """
-
-        id_conta = gerarNovoIdContaPaciente()
-
-        cursor.execute(sql, {
-            'id_conta_paciente': id_conta,
-            'ds_email': dadosPaciente["email"],
-            'ds_senha': dadosPaciente["senha"],
-            'fk_id_paciente': dadosPaciente["id_paciente"],
-            'fk_id_convenio': dadosPaciente["id_convenio"],
+        response_api = requests.post(f"{api_url}/conta_paciente", json={
+            "email": dadosPaciente["email"],
+            "senha": dadosPaciente["senha"],
+            "paciente": {
+                "id": dadosPaciente["id_paciente"]
+            },
+            "convenioMedico": {
+                "id": dadosPaciente["id_convenio"]
+            }
         })
-        conexao.commit()
-        print(f'Conta cadastrada com sucesso!')
 
-        dadosPaciente["id_conta_paciente"] = id_conta
+        print(f'Conta cadastrada com sucesso!')
+        dadosPaciente["id_conta_paciente"] = response_api.json()
 
         return dadosPaciente
+    except requests.exceptions.RequestException as erro:
+        print(f'Erro na requisição: {erro}')
+        return None
 
-    except oracledb.Error as e:
-        print(f'\nErro ao cadastrar a conta: {e}')
-        conexao.rollback()
-    finally:
-        if conexao:
-            conexao.close()
+    except Exception as e:
+        print(f'Erro: {e}')
+        return None
 
 #Função que retorna a conta do paciente no banco de dados procurada pelo email
 def selectContaPacientePorEmail(email):
-    conexao = getConexao()
-    if not conexao:
-        return
-
     try:
-        cursor = conexao.cursor()
-        codigo_sql = """
-            SELECT * from Conta_Paciente where ds_email = :email
-        """
-        cursor.execute(codigo_sql, {
-            'email': email
-        })
+        response_api = requests.get(f"{api_url}/conta_paciente/email/{email}")
 
-        registros = cursor.fetchall()
-        if not registros or len(registros) == 0:
+        if not response_api.json():
             return None
         else:
             conta = {
-                "id_conta_paciente": registros[0][0],
-                "email": registros[0][1],
-                "senha": registros[0][2],
-                "fk_id_paciente": registros[0][3],
-                "fk_id_convenio": registros[0][4]
+                "id_conta_paciente": response_api.json()["id"],
+                "email": response_api.json()["email"],
+                "senha": response_api.json()["senha"],
+                "fk_id_paciente": response_api.json()["paciente"]["id"],
+                "fk_id_convenio": response_api.json()["convenioMedico"]["id"]
             }
 
             return conta
 
-    except oracledb.Error as error:
-        print(f"Falha no acesso ao Banco de Dados: {error}")
+    except requests.exceptions.RequestException as erro:
+        print(f'Erro na requisição: {erro}')
+        return None
 
-    finally:
-        if conexao:
-            conexao.close()
+    except Exception as e:
+        print(f'Erro: {e}')
+        return None
 
 #Função que retorna a conta do paciente no banco de dados procurada pelo ID
 def selectContaPacientePorId(id):
-    conexao = getConexao()
-    if not conexao:
-        return
-
     try:
-        cursor = conexao.cursor()
-        codigo_sql = """
-            SELECT * from Conta_Paciente where id_conta_paciente = :id
-        """
-        cursor.execute(codigo_sql, {
-            'id': id
-        })
+        response_api = requests.get(f"{api_url}/conta_paciente/{id}")
 
-        registros = cursor.fetchall()
-        if not registros or len(registros) == 0:
+        if not response_api.json():
             return None
         else:
             conta = {
-                "id_conta_paciente": registros[0][0],
-                "email": registros[0][1],
-                "senha": registros[0][2],
-                "fk_id_paciente": registros[0][3],
-                "fk_id_convenio": registros[0][4]
+                "id_conta_paciente": response_api.json()["id"],
+                "email": response_api.json()["email"],
+                "senha": response_api.json()["senha"],
+                "fk_id_paciente": response_api.json()["paciente"]["id"],
+                "fk_id_convenio": response_api.json()["convenioMedico"]["id"]
             }
 
             return conta
 
-    except oracledb.Error as error:
-        print(f"Falha no acesso ao Banco de Dados: {error}")
+    except requests.exceptions.RequestException as erro:
+        print(f'Erro na requisição: {erro}')
+        return None
 
-    finally:
-        if conexao:
-            conexao.close()
+    except Exception as e:
+        print(f'Erro: {e}')
+        return None
 
 #Função que retorna o id do perfil médico do paciente no banco de dados, procurado pelo RG
 def selectIdPerfilPacientePorRg(rg):
-    conexao = getConexao()
-    if not conexao:
-        return
-
     try:
-        cursor = conexao.cursor()
-        codigo_sql = """
-                SELECT id_paciente from Paciente where ds_rg = :rg
-            """
-        cursor.execute(codigo_sql, {
-            'rg': rg
-        })
+        response_api = requests.get(f"{api_url}/paciente/rg/{rg}")
 
-        registros = cursor.fetchall()
-        if not registros or len(registros) == 0:
+        if not response_api.json():
             return None
         else:
 
-            return registros[0][0]
+            return response_api.json()
 
-    except oracledb.Error as error:
-        print(f"Falha no acesso ao Banco de Dados: {error}")
+    except requests.exceptions.RequestException as erro:
+        print(f'Erro na requisição: {erro}')
+        return None
 
-    finally:
-        if conexao:
-            conexao.close()
+    except Exception as e:
+        print(f'Erro: {e}')
+        return None
 
-#Função que retorna a conta do paciente no banco de dados procurada pelo ID
+#Função que retorna o paciente no banco de dados procurada pelo ID
 def selectPacientePorId(id):
-    conexao = getConexao()
-    if not conexao:
-        return
-
     try:
-        cursor = conexao.cursor()
-        codigo_sql = """
-                    SELECT * from Paciente where id_paciente = :id
-                """
-        cursor.execute(codigo_sql, {
-            'id': id
-        })
+        response_api = requests.get(f"{api_url}/paciente/{id}")
 
-        registros = cursor.fetchall()
-        if not registros or len(registros) == 0:
+        if not response_api.json():
             return None
         else:
-            linha_atual = registros[0]
             paciente = {
-                'id_paciente': linha_atual[0],
-                'num_tel': linha_atual[1],
-                'ds_endereco': linha_atual[2],
-                'nm_paciente': linha_atual[3],
-                'num_idade': linha_atual[4],
-                'ds_sexo_paciente': linha_atual[5],
-                'num_altura': linha_atual[6],
-                'num_peso': linha_atual[7],
-                'ds_rg': linha_atual[8],
-                'ds_cpf': linha_atual[9]
+                'id_paciente': response_api.json()["id"],
+                'num_tel': response_api.json()["telefone"],
+                'ds_endereco': response_api.json()["endereco"],
+                'nm_paciente': response_api.json()["idade"],
+                'num_idade': response_api.json()["idade"],
+                'ds_sexo_paciente': response_api.json()["sexo"],
+                'num_altura': response_api.json()["altura"],
+                'num_peso': response_api.json()["peso"],
+                'ds_rg': response_api.json()["rg"],
+                'ds_cpf': response_api.json()["cpf"]
             }
+
             return paciente
 
-    except oracledb.Error as error:
-        print(f"Falha no acesso ao Banco de Dados: {error}")
+    except requests.exceptions.RequestException as erro:
+        print(f'Erro na requisição: {erro}')
+        return None
 
-    finally:
-        if conexao:
-            conexao.close()
+    except Exception as e:
+        print(f'Erro: {e}')
+        return None
 
 #Método que loga ou registra o usuário no sistema
 def loginERegistro():
@@ -499,7 +240,9 @@ def loginERegistro():
             while not esta_logado:
                 email_registro = input("Insira o seu email: ")
                 time.sleep(.45)
-                if not "@" in email_registro or " " in email_registro:
+
+                padrao_email = r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'
+                if not regex.match(padrao_email, email_registro):
                     print("\nEmail inválido, tente novamente.")
                     continue
 
@@ -714,6 +457,9 @@ def loginERegistro():
 
                     info_paciente = criarPerfilPaciente(perfil_paciente)
 
+                    if not info_paciente:
+                        print("Falha na criação. Finalizando o programa.")
+
                     time.sleep(.35)
                     print("Registraremos agora o seu Convênio Médico")
 
@@ -773,7 +519,8 @@ def loginERegistro():
                 email_login = input("Insira o seu email: ")
                 time.sleep(.45)
 
-                if not "@" in email_login or " " in email_login:
+                padrao_email = r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'
+                if not regex.match(padrao_email, email_login):
                     print("Email inválido, tente novamente.")
                     continue
 
@@ -825,129 +572,81 @@ def loginERegistro():
 
 #Função que retorna todos os agendamentos que têm o id do paciente no banco de dados
 def selectAgendamentosPorIdPaciente(id_paciente):
-    conexao = getConexao()
-    if not conexao:
-        return
-
     lista_agendamentos = []
 
     try:
-        cursor = conexao.cursor()
-        codigo_sql = """
-                    SELECT * from Agendamento where fk_id_paciente = :id
-                """
-        cursor.execute(codigo_sql, {
-            'id': id_paciente
-        })
+        response_api = requests.get(f"{api_url}/agendamento/{id_paciente}")
 
-        registros = cursor.fetchall()
-        if not registros or len(registros) == 0:
-            return []
-        else:
-            for agendamento in registros:
-                novo_agendamento = {
-                    "id_agendamento": agendamento[0],
-                    "dt_consulta": agendamento[1],
-                    "hr_consulta": agendamento[2],
-                    "fk_id_medico": agendamento[3],
-                    "fk_id_instituicao": agendamento[4],
-                    "fk_id_paciente": agendamento[5]
-                }
-                lista_agendamentos.append(novo_agendamento)
+        for agendamento in response_api.json():
+            novo_agendamento = {
+                "id_agendamento": agendamento["id"],
+                "dt_consulta": agendamento["data"],
+                "hr_consulta": agendamento["horario"],
+                "fk_id_medico": agendamento["medicoResponsavel"]["id"],
+                "fk_id_instituicao": agendamento["local"]["id"],
+                "fk_id_paciente": agendamento["paciente"]["id"]
+            }
+            lista_agendamentos.append(novo_agendamento)
 
-            return lista_agendamentos
+    except requests.exceptions.RequestException as erro:
+        print(f'Erro na requisição: {erro}')
 
-    except oracledb.Error as error:
-        print(f"Falha no acesso ao Banco de Dados: {error}")
+    except Exception as e:
+        print(f'Erro: {e}')
 
-    finally:
-        if conexao:
-            conexao.close()
+    return lista_agendamentos
 
 #Função que cadastra um novo agendamento no banco de dados
 def criarAgendamento(agendamento, id_paciente, id_medico, id_instituicao):
-    def gerarNovoIdAgendamento():
-        conexao_id = getConexao()
-
-        if not conexao_id:
-            return False
-
-        try:
-            cursor_id = conexao_id.cursor()
-            sql_id = """select MAX(id_agendamento) from Agendamento"""
-            cursor_id.execute(sql_id)
-
-            maior_id = cursor_id.fetchone()
-
-            return (maior_id[0] or 0) + 1
-
-        except oracledb.Error as e:
-            print(f'\nErro ao conectar ao Banco de Dados: {e}')
-        finally:
-            if conexao_id:
-                conexao_id.close()
-
-    conexao = getConexao()
-
-    if not conexao:
-        return
-
     try:
-        cursor = conexao.cursor()
-        sql = """
-                INSERT INTO Agendamento (id_agendamento, dt_consulta, hr_consulta, fk_id_medico, fk_id_instituicao, fk_id_paciente)
-                VALUES (:id_agendamento, :dt_consulta, :hr_consulta, :fk_id_medico, :fk_id_instituicao, :fk_id_paciente)
-            """
-
-        id_agendamento = gerarNovoIdAgendamento()
-
-        cursor.execute(sql, {
-            'id_agendamento': id_agendamento,
-            'dt_consulta': agendamento["dt_consulta"],
-            'hr_consulta': agendamento["hr_consulta"],
-            'fk_id_medico': id_medico,
-            'fk_id_instituicao': id_instituicao,
-            'fk_id_paciente': id_paciente
+        dataAgendamento = agendamento["dt_consulta"].strftime("%Y-%m-%d")
+        response_api = requests.post(f"{api_url}/agendamento", json={
+            "horario": agendamento["hr_consulta"],
+            "data": dataAgendamento,
+            "paciente": {
+                "id": id_paciente
+            },
+            "local": {
+                "id": id_instituicao
+            },
+            "medicoResponsavel": {
+                "id": id_medico
+            }
         })
-        conexao.commit()
+
         print(f'Agendamento cadastrado com sucesso!')
+
+        id_agendamento = response_api.json()
 
         return id_agendamento
 
-    except oracledb.Error as e:
-        print(f'\nErro ao cadastrar o convênio: {e}')
-        conexao.rollback()
-    finally:
-        if conexao:
-            conexao.close()
+    except requests.exceptions.RequestException as erro:
+        print(f'Erro na requisição: {erro}')
+        return None
+
+    except Exception as e:
+        print(f'Erro: {e}')
+        return None
+
 
 #Função que deleta um agendamento do banco de dados
 def deleteAgendamentoPorId(id):
-    conexao = getConexao()
-
-    if not conexao:
-        return
-
     try:
-        cursor = conexao.cursor()
+        response_api = requests.delete(f"{api_url}/agendamento/{id}")
 
-        sql = "DELETE FROM Agendamento WHERE id_agendamento = :id"
-
-        cursor.execute(sql, {'id': id})
-        conexao.commit()
-
-        if cursor.rowcount > 0:
+        if response_api.status_code == 200:
             print(f'O Agendamento foi excluído com sucesso!')
         else:
             print(f'Nenhum Agendamento com id: {id} foi encontrado!')
-    except oracledb.Error as e:
-        print(f'\n Erro ao excluir Agendamento: {e}')
-        conexao.rollback()
-    finally:
-        if conexao:
-            conexao.close()
 
-        #Método que mostra a lista de opções do menu de agendamentos
+    except requests.exceptions.RequestException as erro:
+        print(f'Erro na requisição: {erro}')
+        return None
+
+    except Exception as e:
+        print(f'Erro: {e}')
+        return None
+
 
 #Método que mostra o menu de agendamentos
 def menu_agendamentos(id_paciente):
@@ -960,7 +659,8 @@ def menu_agendamentos(id_paciente):
               "\n1 - Listar agendamentos;"
               "\n2 - Agendar;"
               "\n3 - Desmarcar agendamento;"
-              "\n4 - Voltar"
+              "\n4 - Voltar;"
+              "\n5 - Exportar todos os Agendamentos para JSON."
               "\n")
 
         opcao_agendamento = int(input("\nInsira o número de sua escolha: "))
@@ -975,7 +675,7 @@ def menu_agendamentos(id_paciente):
                     medico = selectMedicoPorId(agendamento.get('fk_id_medico'))
                     instituicao = selectInstituicaoPorId(agendamento.get('fk_id_instituicao'))
 
-                    data_formatada = agendamento["dt_consulta"].strftime("%d/%m/%Y")  # pega só dia/mês/ano
+                    data_formatada = agendamento["dt_consulta"]
                     time.sleep(.5)
                     print(f"--------------------------"
                           f"\nMédico: {medico['nm_medico']};"
@@ -993,7 +693,6 @@ def menu_agendamentos(id_paciente):
                 instituicao = ""
                 paciente = None
 
-                #Looping que ocorrerá até todas as informações serem válidas
                 while not informacoes_corretas:
                     print(f"\nNovo agendamento:\n")
                     time.sleep(.3)
@@ -1002,61 +701,91 @@ def menu_agendamentos(id_paciente):
                     horario_str = input("Agora insira o horário no qual o agendamento ocorrerá (HH:MM): ")
                     time.sleep(.5)
 
-                    #Escolhe um médico aleatório, visto que teria acesso a todos os possíveis na situação real
+                    # Lista de médicos disponíveis
                     lista_medicos = selectMedicos()
-                    medico = random.choice(lista_medicos)
+                    if not lista_medicos:
+                        print("Nenhum médico disponível no momento.")
+                        return
 
-                    #Escolhe uma instituição aleatória, visto que teria acesso a todas as possíveis na situação real
+                    print("\n=== Lista de Médicos Disponíveis ===")
+                    id_agendamento = 1
+                    for medico in lista_medicos:
+                        print(f"{id_agendamento}. {medico['nm_medico']} — Setor: {medico['ds_setor_medico']}")
+                        id_agendamento += 1
+
+                    while True:
+                        try:
+                            escolha_medico = int(input("\nEscolha o número do médico desejado: "))
+                            if 1 <= escolha_medico <= len(lista_medicos):
+                                medico = lista_medicos[escolha_medico - 1]
+                                break
+                            else:
+                                print("Opção inválida! Escolha um número válido.")
+                        except ValueError:
+                            print("Entrada inválida! Digite apenas o número da opção.")
+
+                    # Lista de instituições disponíveis
                     lista_locais = selectInstituicao()
-                    local = random.choice(lista_locais)
+                    if not lista_locais:
+                        print("Nenhuma instituição disponível no momento.")
+                        return
 
-                    novo_agendamento = {}
+                    print("\n=== Lista de Instituições ===")
+                    id_agendamento = 1
+                    for instituicao in lista_locais:
+                        endereco = instituicao['ds_endereco']
+                        print(f"{id_agendamento}. {instituicao['nm_fantasia']} — {endereco['logradouro']}, {endereco['numero']} - {endereco['bairro']} ({endereco['cidade']} - {endereco['cep']})")
+                        id_agendamento += 1
+
+                    while True:
+                        try:
+                            escolha_local = int(input("\nEscolha o número da instituição desejada: "))
+                            if 1 <= escolha_local <= len(lista_locais):
+                                local = lista_locais[escolha_local - 1]
+                                break
+                            else:
+                                print("Opção inválida! Escolha um número válido.")
+                        except ValueError:
+                            print("Entrada inválida! Digite apenas o número da opção.")
 
                     try:
                         data_agendamento = datetime.strptime(data_str, "%d/%m/%Y")
                         hora, minuto = map(int, horario_str.split(":"))
-
                         data_hoje = datetime.now()
 
-                        '''
-                            - Não tem como agendar num ano que já passou
-                            - A hora não pode ser negativa e nem passar de um dia
-                            - Os minutos não podem ser negativos e nem passarem de uma hora
-                        '''
-
-                        # Ano no passado
                         if data_agendamento.year < data_hoje.year:
                             print("O ano não pode ser menor que o atual!")
                             time.sleep(.35)
                             continue
 
-                        # Horas
                         if hora < 0 or hora > 23:
                             print("Hora inválida, precisa estar entre 0 e 23.")
                             time.sleep(.35)
                             continue
 
-                        # Minutos
                         if minuto < 0 or minuto > 59:
                             print("Minutos inválidos, precisam estar entre 0 e 59.")
                             time.sleep(.35)
                             continue
 
-                        # Dictionary do novo agendamento
                         novo_agendamento = {
                             "dt_consulta": data_agendamento,
                             "hr_consulta": f"{hora}:{minuto}"
                         }
 
-                        criarAgendamento(novo_agendamento, id_paciente, medico["id_medico"], local["id_instituicao"])
+                        criarAgendamento(
+                            novo_agendamento,
+                            id_paciente,
+                            medico["id_medico"],
+                            local["id_instituicao"]
+                        )
                         time.sleep(.5)
 
                     except ValueError:
                         print("Formato inválido! Use DD/MM/AAAA para a data e HH:MM para o horário.")
-
+                        continue
 
                     informacoes_corretas = True
-
 
             case 3:
                 print("\nRemover Agendamento:\n")
@@ -1075,7 +804,7 @@ def menu_agendamentos(id_paciente):
                         #Itera sobre cada agendamento na lista de agendamentos, e mostra cada um com um id e suas datas, o local e o médico
                         for agendamento in lista_agendamentos:
                             medico = selectMedicoPorId(agendamento.get('fk_id_medico'))
-                            data_formatada = agendamento["dt_consulta"].strftime("%d/%m/%Y")
+                            data_formatada = agendamento["dt_consulta"]
                             time.sleep(.5)
                             print(f"--------------------------"
                                   f"\n{id_agendamento} - {agendamento["hr_consulta"]} — {data_formatada}"
@@ -1113,75 +842,71 @@ def menu_agendamentos(id_paciente):
                 time.sleep(.5)
                 break
 
+            case 5:
+                try:
+                    with open("agendamentos.json", "w", encoding="utf-8") as arquivo:
+                        json.dump(lista_agendamentos, arquivo)
+                    print("Dados exportados com sucesso para 'agendamentos.json'.")
+                except Exception as e:
+                    print(f"Erro ao exportar dados: {e}")
+                break
+
             case _:
                 print("\nOpção inválida!")
                 time.sleep(.5)
                 continue
 
 
-
 #Função que atualiza o telefone do perfil médico do paciente no banco de dados através do ID
 def updateTelefonePacientePorId(id, telefone):
-    conexao = getConexao()
-    if not conexao:
-        return
-
     try:
-        cursor = conexao.cursor()
-        sql = "UPDATE Paciente SET num_tel = :telefone WHERE id_paciente = :id"
-        cursor.execute(sql, {'telefone': telefone, 'id': id})
+        response_api = requests.put(f"{api_url}/paciente/telefone", json={
+            "id": id,
+            "telefone": telefone
+        })
 
-        conexao.commit()
+        print(f'Telefone atualizado com sucesso!')
+    except requests.exceptions.RequestException as erro:
+        print(f'Erro na requisição: {erro}')
+        return None
 
-    except oracledb.Error as e:
-        print(f'\nErro ao atualizar telefone: {e}')
-        conexao.rollback()
-
-    finally:
-        if conexao:
-            conexao.close()
+    except Exception as e:
+        print(f'Erro: {e}')
+        return None
 
 #Função que atualiza a altura do perfil médico do paciente no banco de dados através do ID
 def updateAlturaPacientePorId(id, altura):
-    conexao = getConexao()
-    if not conexao:
-        return
-
     try:
-        cursor = conexao.cursor()
-        sql = "UPDATE Paciente SET num_altura = :altura WHERE id_paciente = :id"
-        cursor.execute(sql, {'altura': altura, 'id': id})
+        response_api = requests.put(f"{api_url}/paciente/altura", json={
+            "id": id,
+            "altura": altura
+        })
 
-        conexao.commit()
+        print(f'Altura atualizada com sucesso!')
+    except requests.exceptions.RequestException as erro:
+        print(f'Erro na requisição: {erro}')
+        return None
 
-    except oracledb.Error as e:
-        print(f'\nErro ao atualizar altura: {e}')
-        conexao.rollback()
-
-    finally:
-        if conexao:
-            conexao.close()
+    except Exception as e:
+        print(f'Erro: {e}')
+        return None
 
 #Função que atualiza o peso do perfil médico do paciente no banco de dados através do ID
 def updatePesoPacientePorId(id, peso):
-    conexao = getConexao()
-    if not conexao:
-        return
-
     try:
-        cursor = conexao.cursor()
-        sql = "UPDATE Paciente SET num_peso = :peso WHERE id_paciente = :id"
-        cursor.execute(sql, {'peso': peso, 'id': id})
+        response_api = requests.put(f"{api_url}/paciente/peso", json={
+            "id": id,
+            "peso": peso
+        })
 
-        conexao.commit()
+        print(f'Peso atualizado com sucesso!')
+    except requests.exceptions.RequestException as erro:
+        print(f'Erro na requisição: {erro}')
+        return None
 
-    except oracledb.Error as e:
-        print(f'\nErro ao atualizar peso: {e}')
-        conexao.rollback()
-
-    finally:
-        if conexao:
-            conexao.close()
+    except Exception as e:
+        print(f'Erro: {e}')
+        return None
 
 #Método que mostra o menu de minha conta
 def menu_minha_conta(minha_conta):
@@ -1212,9 +937,6 @@ def menu_minha_conta(minha_conta):
 
                 updateEmailContaPacientePorId(minha_conta["id_conta_paciente"], novo_email)
                 time.sleep(.6)
-
-                print("\nNovo email salvo com sucesso!")
-
                 break
 
             case 2:
@@ -1229,7 +951,10 @@ def menu_minha_conta(minha_conta):
 
                 updateSenhaContaPacientePorId(minha_conta["id_conta_paciente"], nova_senha)
                 time.sleep(.6)
+
                 print("\nNova senha salva com sucesso!")
+
+                break
 
             case 3:
                 time.sleep(.45)
@@ -1245,45 +970,37 @@ def menu_minha_conta(minha_conta):
 
 #Função que atualiza o email da conta do paciente no banco de dados através do ID
 def updateEmailContaPacientePorId(id, email):
-    conexao = getConexao()
-    if not conexao:
-        return
-
     try:
-        cursor = conexao.cursor()
-        sql = "UPDATE Conta_Paciente SET ds_email = :email WHERE id_conta_paciente = :id"
-        cursor.execute(sql, {'email': email, 'id': id})
+        response_api = requests.put(f"{api_url}/conta_paciente/email", json={
+            "id": id,
+            "email": email
+        })
 
-        conexao.commit()
+        print(f'Email atualizado com sucesso!')
+    except requests.exceptions.RequestException as erro:
+        print(f'Erro na requisição: {erro}')
+        return None
 
-    except oracledb.Error as e:
-        print(f'\nErro ao atualizar email: {e}')
-        conexao.rollback()
-
-    finally:
-        if conexao:
-            conexao.close()
+    except Exception as e:
+        print(f'Erro: {e}')
+        return None
 
 #Função que atualiza a senha da conta do paciente no banco de dados através do ID
 def updateSenhaContaPacientePorId(id, senha):
-    conexao = getConexao()
-    if not conexao:
-        return
-
     try:
-        cursor = conexao.cursor()
-        sql = "UPDATE Conta_Paciente SET ds_senha = :senha WHERE id_conta_paciente = :id"
-        cursor.execute(sql, {'senha': senha, 'id': id})
+        response_api = requests.put(f"{api_url}/conta_paciente/senha", json={
+            "id": id,
+            "senha": senha
+        })
 
-        conexao.commit()
+        print(f'Senha atualizada com sucesso!')
+    except requests.exceptions.RequestException as erro:
+        print(f'Erro na requisição: {erro}')
+        return None
 
-    except oracledb.Error as e:
-        print(f'\nErro ao atualizar senha: {e}')
-        conexao.rollback()
-
-    finally:
-        if conexao:
-            conexao.close()
+    except Exception as e:
+        print(f'Erro: {e}')
+        return None
 
 #Método que mostra o menu de meus dados
 def menu_meus_dados(meus_dados):
@@ -1302,7 +1019,8 @@ def menu_meus_dados(meus_dados):
               f"1 - Editar Telefone;"
               f"\n2 - Editar Altura (m);"
               f"\n3 - Editar Peso (kg);"
-              f"\n4 - Voltar")
+              f"\n4 - Voltar;"
+              f"\n5 - Exportar para JSON.")
 
         opcao_meus_dados = int(input("\nInsira o número de sua escolha: "))
         time.sleep(.65)
@@ -1332,7 +1050,7 @@ def menu_meus_dados(meus_dados):
                 time.sleep(.5)
                 if nova_altura > 100:
                     nova_altura /= 100
-                if nova_altura < 10:
+                elif nova_altura < 10:
                     print("Altura inválida.")
                     continue
 
@@ -1361,56 +1079,56 @@ def menu_meus_dados(meus_dados):
                 time.sleep(.5)
                 break
 
+            case 5:
+                try:
+                    with open("meus_dados.json", "w", encoding="utf-8") as arquivo:
+                        json.dump(meus_dados, arquivo)
+                    print("Dados exportados com sucesso para 'meus_dados.json'.")
+                except Exception as e:
+                    print(f"Erro ao exportar dados: {e}")
+                break
+
             case _:
                 print("Escolha inválida")
-                .5
+                time.sleep(.5)
                 continue
 
 
 #Função que retorna o convênio médico do paciente no banco de dados, procurado com o ID do mesmo
 def selectConvenioMedicoPorIdPaciente(id_paciente):
-    conexao = getConexao()
-    if not conexao:
-        return
-
     try:
-        cursor = conexao.cursor()
-        codigo_sql = """
-                        SELECT * from Convenio where fk_id_paciente = :id
-                    """
-        cursor.execute(codigo_sql, {
-            'id': id_paciente
-        })
+        response_api = requests.get(f"{api_url}/convenio_medico/paciente/{id_paciente}")
 
-        fetch_convenio = cursor.fetchone()
-        if not fetch_convenio:
+        if not response_api.json():
             return None
         else:
             convenio_medico = {
-                "id_convenio": fetch_convenio[0],
-                "nm_operadora": fetch_convenio[1],
-                "num_carteirinha": fetch_convenio[2],
-                "dt_inicio": fetch_convenio[3],
-                "dt_validade": fetch_convenio[4],
-                "fk_id_paciente": fetch_convenio[5]
+                "id_convenio": response_api.json()["id"],
+                "nm_operadora": response_api.json()["operadora"],
+                "num_carteirinha": response_api.json()["numeroCarteirinha"],
+                "dt_inicio": response_api.json()["dataInicio"],
+                "dt_validade": response_api.json()["dataValidade"],
+                "fk_id_paciente": response_api.json()["idPaciente"]
             }
 
             return convenio_medico
 
-    except oracledb.Error as error:
-        print(f"Falha no acesso ao Banco de Dados: {error}")
+    except requests.exceptions.RequestException as erro:
+        print(f'Erro na requisição: {erro}')
+        return None
 
-    finally:
-        if conexao:
-            conexao.close()
+    except Exception as e:
+        print(f'Erro: {e}')
+        return None
+
 
 #Método que mostra o menu de convênio médico
 def menu_convenio_medico(id_paciente):
     while True:
         convenio_medico = selectConvenioMedicoPorIdPaciente(id_paciente)
 
-        emissao_formatada = convenio_medico["dt_inicio"].strftime("%d/%m/%Y")  # pega só dia/mês/ano
-        validade_formatada = convenio_medico["dt_validade"].strftime("%d/%m/%Y")  # pega só dia/mês/ano
+        emissao_formatada = convenio_medico["dt_inicio"]  # pega só dia/mês/ano
+        validade_formatada = convenio_medico["dt_validade"]  # pega só dia/mês/ano
 
         time.sleep(.35)
         print(f"\nInformações do meu Convênio Médico:"
@@ -1419,6 +1137,7 @@ def menu_convenio_medico(id_paciente):
               f"\nEmissão: {emissao_formatada};"
               f"\nValidade: {validade_formatada};"
               f"\n"
+              f"\n1 - Exportar dados para JSON;"
               f"\n0 - Voltar")
 
         time.sleep(.25)
@@ -1426,6 +1145,15 @@ def menu_convenio_medico(id_paciente):
             opcao_meus_dados = int(input("\nInsira o número de sua escolha: "))
             time.sleep(.3)
             match opcao_meus_dados:
+                case 1:
+                    try:
+                        with open("convenio_medico.json", "w", encoding="utf-8") as arquivo:
+                            json.dump(convenio_medico, arquivo)
+                        print("Dados exportados com sucesso para 'convenio_medico.json'.")
+                    except Exception as e:
+                        print(f"Erro ao exportar dados: {e}")
+                    break
+
                 case 0:
                     print("\nVoltando.")
                     time.sleep(.5)
@@ -1443,125 +1171,75 @@ def menu_convenio_medico(id_paciente):
 
 #Função que cadastra um novo relatório médico no banco de dados
 def criarRelatorio(relatorio, id_paciente, id_medico):
-    def gerarNovoIdRelatorio():
-        conexao_id = getConexao()
-
-        if not conexao_id:
-            return False
-
-        try:
-            cursor_id = conexao_id.cursor()
-            sql_id = """select MAX(id_relatorio_medico) from Relatorio_Medico"""
-            cursor_id.execute(sql_id)
-
-            maior_id = cursor_id.fetchone()
-
-            return (maior_id[0] or 0) + 1
-
-        except oracledb.Error as e:
-            print(f'\nErro ao conectar ao Banco de Dados: {e}')
-        finally:
-            if conexao_id:
-                conexao_id.close()
-
-    conexao = getConexao()
-
-    if not conexao:
-        return
-
     try:
-        cursor = conexao.cursor()
-        sql = """
-                INSERT INTO Relatorio_Medico (id_relatorio_medico, dt_relatorio, ds_relatorio, fk_id_medico, fk_id_paciente)
-                VALUES (:id_relatorio_medico, :dt_relatorio, :ds_relatorio, :fk_id_medico, :fk_id_paciente)
-            """
-
-        id_relatorio = gerarNovoIdRelatorio()
-
-        cursor.execute(sql, {
-            'id_relatorio_medico': id_relatorio,
-            'dt_relatorio': relatorio["dt_relatorio"],
-            'ds_relatorio': relatorio["ds_relatorio"],
-            'fk_id_medico': id_medico,
-            'fk_id_paciente': id_paciente
+        response_api = requests.post(f"{api_url}/relatorio_medico", json={
+            "descricaoRelatorio": relatorio["ds_relatorio"],
+            "paciente": {
+                "id": id_paciente
+            },
+            "dataRelatorio": relatorio["dt_relatorio"],
+            "medicoRelator": {
+                "id": id_medico
+            }
         })
-        conexao.commit()
+
+        id_relatorio = response_api.text
+
         print(f'Relatório emitido com sucesso!')
 
         return id_relatorio
 
-    except oracledb.Error as e:
-        print(f'\nErro ao cadastrar o Relatório Médico: {e}')
-        conexao.rollback()
-    finally:
-        if conexao:
-            conexao.close()
+    except requests.exceptions.RequestException as erro:
+        print(f'Erro na requisição: {erro}')
+        return None
+
+    except Exception as e:
+        print(f'Erro: {e}')
+        return None
 
 #Função que deleta um relatório médico do banco de dados através do ID
 def deleteRelatorioPorId(id):
-    conexao = getConexao()
-
-    if not conexao:
-        return
-
     try:
-        cursor = conexao.cursor()
+        response_api = requests.delete(f"{api_url}/relatorio_medico/{id}")
 
-        sql = "DELETE FROM Relatorio_Medico WHERE id_relatorio_medico = :id"
-
-        cursor.execute(sql, {'id': id})
-        conexao.commit()
-
-        if cursor.rowcount > 0:
-            print(f'O Relatório foi excluído com sucesso!')
+        if response_api.status_code == 200:
+            print(f'O relatório médico foi excluído com sucesso!')
         else:
-            print(f'Nenhum relatório com id: {id} foi encontrado!')
-    except oracledb.Error as e:
-        print(f'\n Erro ao excluir relatório: {e}')
-        conexao.rollback()
-    finally:
-        if conexao:
-            conexao.close()
+            print(f'Nenhum relatório médico com id: {id} foi encontrado!')
+
+    except requests.exceptions.RequestException as erro:
+        print(f'Erro na requisição: {erro}')
+        return None
+
+    except Exception as e:
+        print(f'Erro: {e}')
+        return None
 
 #Função que retorna todos os relatórios médicos no banco de dados que têm o ID do paciente
 def selectRelatoriosPorIdPaciente(id_paciente):
-    conexao = getConexao()
-    if not conexao:
-        return
-
     lista_relatorios = []
 
     try:
-        cursor = conexao.cursor()
-        codigo_sql = """
-                    SELECT * from Relatorio_Medico where fk_id_paciente = :id
-                """
-        cursor.execute(codigo_sql, {
-            'id': id_paciente
-        })
+        response_api = requests.get(f"{api_url}/relatorio_medico/paciente/{id_paciente}")
 
-        registros = cursor.fetchall()
-        if not registros or len(registros) == 0:
-            return []
-        else:
-            for relatorio in registros:
-                novo_relatorio = {
-                    "id_relatorio_medico": relatorio[0],
-                    "dt_relatorio": relatorio[1],
-                    "ds_relatorio": relatorio[2],
-                    "fk_id_medico": relatorio[3],
-                    "fk_id_paciente": relatorio[4]
-                }
-                lista_relatorios.append(novo_relatorio)
+        for relatorio in response_api.json():
+            novo_relatorio = {
+                "id_relatorio_medico": relatorio["id"],
+                "dt_relatorio": relatorio["dataRelatorio"],
+                "ds_relatorio": relatorio["descricaoRelatorio"],
+                "fk_id_medico": relatorio["medicoRelator"]["id"],
+                "fk_id_paciente": relatorio["paciente"]["id"]
+            }
+            lista_relatorios.append(novo_relatorio)
 
-            return lista_relatorios
+    except requests.exceptions.RequestException as erro:
+        print(f'Erro na requisição: {erro}')
 
-    except oracledb.Error as error:
-        print(f"Falha no acesso ao Banco de Dados: {error}")
+    except Exception as e:
+        print(f'Erro: {e}')
 
-    finally:
-        if conexao:
-            conexao.close()
+    return lista_relatorios
+
 
 #Método que mostra o menu de relatórios médicos
 def menu_relatorios_medicos(id_paciente):
@@ -1575,6 +1253,7 @@ def menu_relatorios_medicos(id_paciente):
               "\n2 - Emitir novo relatório;"
               "\n3 - Deletar relatório;"
               "\n4 - Voltar."
+              "\n5 - Exportar todos os Relatórios para JSON."
               "\n")
 
         time.sleep(.25)
@@ -1589,7 +1268,8 @@ def menu_relatorios_medicos(id_paciente):
                 for relatorio in lista_relatorios:
                     medico = selectMedicoPorId(relatorio['fk_id_medico'])
 
-                    data_formatada = relatorio["dt_relatorio"].strftime("%d/%m/%Y")  # pega só dia/mês/ano
+                    data_obj = datetime.strptime(relatorio["dt_relatorio"], "%Y-%m-%d")
+                    data_formatada = data_obj.strftime("%d/%m/%Y") # pega só dia/mês/ano
                     time.sleep(.35)
                     print(f"--------------------------"
                           f"\nMédico Relator: {medico['nm_medico']};"
@@ -1615,23 +1295,45 @@ def menu_relatorios_medicos(id_paciente):
 
                     #Escolhe um médico aleatório, visto que teria acesso a todos os possíveis na situação real
                     lista_medicos = selectMedicos()
-                    medico = random.choice(lista_medicos)
+                    print(f"IUPI: {lista_medicos}")
+                    if not lista_medicos:
+                        print("Nenhum médico disponível no momento.")
+                        return
+
+                    print("\n=== Lista de Médicos Disponíveis ===")
+                    id_medico = 1
+                    for medico in lista_medicos:
+                        print(f"{id_medico}. {medico['nm_medico']} — Setor: {medico['ds_setor_medico']}")
+                        id_medico += 1
+
+                    while True:
+                        try:
+                            escolha_medico = int(input("\nEscolha o número do médico relator: "))
+                            if 1 <= escolha_medico <= len(lista_medicos):
+                                medico = lista_medicos[escolha_medico - 1]
+                                break
+                            else:
+                                print("Opção inválida! Escolha um número válido.")
+                        except ValueError:
+                            print("Entrada inválida! Digite apenas o número da opção.")
 
                     novo_relatorio = {}
 
                     try:
                         data_relatorio = datetime.strptime(data_str, "%d/%m/%Y")
-
+                        data_relatorio = data_relatorio.strftime("%Y-%m-%d")
                         # Dictionary do novo agendamento
                         novo_relatorio = {
                             "dt_relatorio": data_relatorio,
                             "ds_relatorio": relatorio,
                         }
 
+
                         criarRelatorio(novo_relatorio, id_paciente, medico["id_medico"])
 
-                    except ValueError:
+                    except ValueError as e:
                         time.sleep(.5)
+                        print(e)
                         print("Formato inválido! Use DD/MM/AAAA para a data e HH:MM para o horário.")
 
 
@@ -1655,7 +1357,8 @@ def menu_relatorios_medicos(id_paciente):
                         #Itera sobre cada relatório na lista de relatórios, e mostra cada um com um id, sua data de emissão, o médico relator e o conteúdo
                         for relatorio in lista_relatorios:
                             medico = selectMedicoPorId(relatorio['fk_id_medico'])
-                            data_formatada = relatorio["dt_relatorio"].strftime("%d/%m/%Y")
+                            data_obj = datetime.strptime(relatorio["dt_relatorio"], "%Y-%m-%d")
+                            data_formatada = data_obj.strftime("%d/%m/%Y")  # pega só dia/mês/ano
                             time.sleep(.35)
                             print(f"--------------------------"
                                   f"\n{id_relatorio} - {data_formatada}"
@@ -1703,6 +1406,15 @@ def menu_relatorios_medicos(id_paciente):
                 time.sleep(.5)
                 break
 
+            case 5:
+                try:
+                    with open("relatorios_medicos.json", "w", encoding="utf-8") as arquivo:
+                        json.dump(lista_relatorios, arquivo)
+                    print("Dados exportados com sucesso para 'relatorios_medicos.json'!")
+                except Exception as e:
+                    print(f"Erro ao exportar dados: {e}")
+                break
+
             case _:
                 print("\nOpção inválida!")
                 time.sleep(.5)
@@ -1712,79 +1424,58 @@ def menu_relatorios_medicos(id_paciente):
 
 #Função que retorna um médico do banco de dados, procurado pelo ID
 def selectMedicoPorId(id):
-    conexao = getConexao()
-    if not conexao:
-        return
-
     try:
-        cursor = conexao.cursor()
-        codigo_sql = """
-            SELECT * from Medico where id_medico = :id
-        """
-        cursor.execute(codigo_sql, {
-            'id': id
-        })
+        response_api = requests.get(f"{api_url}/medico/{id}")
 
-        fetch_medico = cursor.fetchone()
-        if not fetch_medico:
+        if not response_api.json():
             return None
         else:
             medico = {
-                "id_medico": fetch_medico[0],
-                "nm_medico": fetch_medico[1],
-                "ds_sexo_medico": fetch_medico[2],
-                "ds_setor_medico": fetch_medico[3],
-                "num_carga_horaria": fetch_medico[4],
-                "vl_hora": fetch_medico[5],
-                "fk_id_instituicao": fetch_medico[6]
+                "id_medico": response_api.json()["id"],
+                "nm_medico": response_api.json()["nomeMedico"],
+                "ds_sexo_medico": response_api.json()["sexo"],
+                "ds_setor_medico": response_api.json()["setorMedico"],
+                "num_carga_horaria": response_api.json()["cargaHoraria"],
+                "vl_hora": response_api.json()["valorHora"],
+                "fk_id_instituicao": response_api.json()["empregador"]["id"]
             }
 
             return medico
-    except oracledb.Error as error:
-        print(f"Falha no acesso ao Banco de Dados: {error}")
 
-    finally:
-        if conexao:
-            conexao.close()
+    except requests.exceptions.RequestException as erro:
+        print(f'Erro na requisição: {erro}')
+        return None
+
+    except Exception as e:
+        print(f'Erro: {e}')
+        return None
 
 #Função que retorna todos os médicos cadastrados no banco de dados
 def selectMedicos():
-    conexao = getConexao()
-    if not conexao:
-        return
-
+    lista_medicos = []
 
     try:
-        lista_medicos = []
-        cursor = conexao.cursor()
-        codigo_sql = """SELECT * from Medico"""
-        cursor.execute(codigo_sql)
+        response_api = requests.get(f"{api_url}/medico")
 
-        registros = cursor.fetchall()
-        if not registros or len(registros) == 0:
-            return []
-        else:
-            for medico in registros:
-                novo_medico = {
-                    "id_medico": medico[0],
-                    "nm_medico": medico[1],
-                    "ds_sexo_medico": medico[2],
-                    "ds_setor_medico": medico[3],
-                    "num_carga_horaria": medico[4],
-                    "vl_hora": medico[5],
-                    "fk_id_instituicao": medico[6]
-                }
+        for medico in response_api.json():
+            novo_medico = {
+                "id_medico": medico["id"],
+                "nm_medico": medico["nomeMedico"],
+                "ds_sexo_medico": medico["sexo"],
+                "ds_setor_medico": medico["setorMedico"],
+                "num_carga_horaria": medico["cargaHoraria"],
+                "vl_hora": medico["valorHora"],
+                "fk_id_instituicao": medico["empregador"]["id"]
+            }
+            lista_medicos.append(novo_medico)
 
-                lista_medicos.append(novo_medico)
+    except requests.exceptions.RequestException as erro:
+        print(f'Erro na requisição: {erro}')
 
-            return lista_medicos
+    except Exception as e:
+        print(f'Erro: {e}')
 
-    except oracledb.Error as error:
-        print(f"Falha no acesso ao Banco de Dados: {error}")
-
-    finally:
-        if conexao:
-            conexao.close()
+    return lista_medicos
 
 #Método que mostra o menu de médicos responsáveis
 def menu_medicos_responsaveis():
@@ -1800,8 +1491,8 @@ def menu_medicos_responsaveis():
             print(f"--------------------------"
                   f"\nNome: {medico['nm_medico']};"
                   f"\nSexo: {medico['ds_sexo_medico']};"
-                  f"\nSetor: {medico["ds_setor_medico"]}"
-                  f"\nInstituição Empregadora: {instituicao['nm_razao_social']}")
+                  f"\nSetor: {medico["ds_setor_medico"]};"
+                  f"\nInstituição Empregadora: {instituicao['nm_razao_social']};")
         print("--------------------------")
 
         print("\n0 - Voltar")
@@ -1832,79 +1523,58 @@ def menu_medicos_responsaveis():
 
 #Função que retorna uma instituição do banco de dados, procurada pelo ID
 def selectInstituicaoPorId(id):
-    conexao = getConexao()
-    if not conexao:
-        return
-
     try:
-        cursor = conexao.cursor()
-        codigo_sql = """
-            SELECT * from Instituicao where id_instituicao = :id
-        """
-        cursor.execute(codigo_sql, {
-            'id': id
-        })
+        response_api = requests.get(f"{api_url}/instituicao/{id}")
 
-        fetch_instituicao = cursor.fetchone()
-        if not fetch_instituicao:
+        if not response_api.json():
             return None
         else:
             instituicao = {
-                "id_instituicao": fetch_instituicao[0],
-                "nm_razao_social": fetch_instituicao[1],
-                "nm_fantasia": fetch_instituicao[2],
-                "ds_setor": fetch_instituicao[3],
-                "num_cnpj": fetch_instituicao[4],
-                "ds_endereco": fetch_instituicao[5]
+                "id_instituicao": response_api.json()["id"],
+                "nm_razao_social": response_api.json()["razaoSocial"],
+                "nm_fantasia": response_api.json()["nomeFantasia"],
+                "ds_setor": response_api.json()["setor"],
+                "num_cnpj": response_api.json()["cnpj"],
+                "ds_endereco": response_api.json()["sede"]
+                #"ds_endereco": f"{response_api.json()["logradouro"]} {response_api.json()["numero"]} — {response_api.json()["bairro"]}, {response_api.json()["cidade"]} - {response_api.json()["cep"]}"
             }
 
             return instituicao
-    except oracledb.Error as error:
-        print(f"Falha no acesso ao Banco de Dados: {error}")
 
-    finally:
-        if conexao:
-            conexao.close()
+    except requests.exceptions.RequestException as erro:
+        print(f'Erro na requisição: {erro}')
+        return None
+
+    except Exception as e:
+        print(f'Erro: {e}')
+        return None
+
 
 #Função que retorna todas as instituições do banco de dados
 def selectInstituicao():
-    conexao = getConexao()
-    if not conexao:
-        return
-
     lista_instituicoes = []
 
     try:
-        cursor = conexao.cursor()
-        codigo_sql = """
-                SELECT * from Instituicao
-            """
-        cursor.execute(codigo_sql)
+        response_api = requests.get(f"{api_url}/instituicao")
 
-        registros = cursor.fetchall()
-        if not registros or len(registros) == 0:
-            return []
-        else:
-            for instituicao in registros:
-                nova_instituicao = {
-                    "id_instituicao": instituicao[0],
-                    "nm_razao_social": instituicao[1],
-                    "nm_fantasia": instituicao[2],
-                    "ds_setor": instituicao[3],
-                    "num_cnpj": instituicao[4],
-                    "ds_endereco": instituicao[5]
-                }
+        for instituicao in response_api.json():
+            nova_instituicao = {
+                "id_instituicao": instituicao["id"],
+                "nm_razao_social": instituicao["razaoSocial"],
+                "nm_fantasia": instituicao["nomeFantasia"],
+                "ds_setor": instituicao["setor"],
+                "num_cnpj": instituicao["cnpj"],
+                "ds_endereco": instituicao["sede"]
+            }
+            lista_instituicoes.append(nova_instituicao)
 
-                lista_instituicoes.append(nova_instituicao)
+    except requests.exceptions.RequestException as erro:
+        print(f'Erro na requisição: {erro}')
 
-            return lista_instituicoes
+    except Exception as e:
+        print(f'Erro: {e}')
 
-    except oracledb.Error as error:
-        print(f"Falha no acesso ao Banco de Dados: {error}")
-
-    finally:
-        if conexao:
-            conexao.close()
+    return lista_instituicoes
 
 #Método que mostra o menu de instituições médicas
 def menu_instituicoes_medicas():
@@ -1915,12 +1585,19 @@ def menu_instituicoes_medicas():
         time.sleep(.35)
         for instituicao in lista_instituicoes:
             time.sleep(.35)
-            print(f"--------------------------"
-                  f"\nRazão Social: {instituicao['nm_razao_social']};"
-                  f"\nNome: {instituicao['nm_fantasia']};"
-                  f"\nSetor: {instituicao["ds_setor"]}"
-                  f"\nCNPJ: {instituicao['num_cnpj']}"
-                  f"\nEndereço: {instituicao['ds_endereco']}")
+            print(
+                "--------------------------"
+                f"\nRazão Social: {instituicao['nm_razao_social']}"
+                f"\nNome Fantasia: {instituicao['nm_fantasia']}"
+                f"\nSetor: {instituicao['ds_setor']}"
+                f"\nCNPJ: {instituicao['num_cnpj']}"
+                f"\nEndereço: {instituicao['ds_endereco']['logradouro']}, "
+                f"{instituicao['ds_endereco']['numero']} - "
+                f"{instituicao['ds_endereco']['bairro']}, "
+                f"{instituicao['ds_endereco']['cidade']} "
+                f"({instituicao['ds_endereco']['cep']})"
+            )
+
         print("--------------------------")
 
         print("\n0 - Voltar")
@@ -1986,9 +1663,8 @@ def menu_paciente_escolha():
           "\n5 - Relatórios Médicos;"
           "\n6 - Médicos Responsáveis;"
           "\n7 - Instituições Médicas;"
-          "\n8 - Documentos Necessários;"
-          "\n9 - Ajuda;"
-          "\n10 - Desconectar."
+          "\n8 - Ajuda;"
+          "\n9 - Desconectar."
           "\n\n")
 
     time.sleep(.5)
@@ -2034,7 +1710,6 @@ def main():
           9 - Desconectar.
         '''
 
-        time.sleep(.65)
         match opcao_menu:
             case 1:
                 menu_minha_conta(conta_paciente)
