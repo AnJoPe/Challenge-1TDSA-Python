@@ -6,7 +6,7 @@ import re as regex
 import requests
 import json
 
-api_url = "http://localhost:8080"
+api_url = "https://api-sistema-hc.onrender.com"
 
 
 # Função para checar se um input é sim. É para evitar colocar ifs gigantes por todo o código.
