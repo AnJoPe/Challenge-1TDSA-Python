@@ -1,8 +1,0 @@
-{
-    "id_convenio": 11,
-    "nm_operadora": "Unimed",
-    "num_carteirinha": "548935654AM",
-    "dt_inicio": "2025-11-08",
-    "dt_validade": "2028-11-07",
-    "fk_id_paciente": 11
-}
