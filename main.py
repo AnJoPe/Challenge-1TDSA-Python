@@ -199,7 +199,7 @@ def selectPacientePorId(id):
                 'id_paciente': response_api.json()["id"],
                 'num_tel': response_api.json()["telefone"],
                 'ds_endereco': response_api.json()["endereco"],
-                'nm_paciente': response_api.json()["idade"],
+                'nm_paciente': response_api.json()["nomePaciente"],
                 'num_idade': response_api.json()["idade"],
                 'ds_sexo_paciente': response_api.json()["sexo"],
                 'num_altura': response_api.json()["altura"],
@@ -844,7 +844,7 @@ def menu_agendamentos(id_paciente):
             case 5:
                 try:
                     with open("agendamentos.json", "w", encoding="utf-8") as arquivo:
-                        json.dump(lista_agendamentos, arquivo)
+                        json.dump(lista_agendamentos, arquivo, indent=4, ensure_ascii=False)
                     print("Dados exportados com sucesso para 'agendamentos.json'.")
                 except Exception as e:
                     print(f"Erro ao exportar dados: {e}")
@@ -1081,7 +1081,7 @@ def menu_meus_dados(meus_dados):
             case 5:
                 try:
                     with open("meus_dados.json", "w", encoding="utf-8") as arquivo:
-                        json.dump(meus_dados, arquivo)
+                        json.dump(meus_dados, arquivo, indent=4, ensure_ascii=False)
                     print("Dados exportados com sucesso para 'meus_dados.json'.")
                 except Exception as e:
                     print(f"Erro ao exportar dados: {e}")
@@ -1147,7 +1147,7 @@ def menu_convenio_medico(id_paciente):
                 case 1:
                     try:
                         with open("convenio_medico.json", "w", encoding="utf-8") as arquivo:
-                            json.dump(convenio_medico, arquivo)
+                            json.dump(convenio_medico, arquivo, indent=4, ensure_ascii=False)
                         print("Dados exportados com sucesso para 'convenio_medico.json'.")
                     except Exception as e:
                         print(f"Erro ao exportar dados: {e}")
@@ -1294,7 +1294,6 @@ def menu_relatorios_medicos(id_paciente):
 
                     #Escolhe um médico aleatório, visto que teria acesso a todos os possíveis na situação real
                     lista_medicos = selectMedicos()
-                    print(f"IUPI: {lista_medicos}")
                     if not lista_medicos:
                         print("Nenhum médico disponível no momento.")
                         return
@@ -1408,7 +1407,7 @@ def menu_relatorios_medicos(id_paciente):
             case 5:
                 try:
                     with open("relatorios_medicos.json", "w", encoding="utf-8") as arquivo:
-                        json.dump(lista_relatorios, arquivo)
+                        json.dump(lista_relatorios, arquivo, indent=4, ensure_ascii=False)
                     print("Dados exportados com sucesso para 'relatorios_medicos.json'!")
                 except Exception as e:
                     print(f"Erro ao exportar dados: {e}")

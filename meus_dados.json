@@ -1,0 +1,18 @@
+{
+    "id_paciente": 11,
+    "num_tel": "12523510568",
+    "ds_endereco": {
+        "logradouro": "Rua Expedito Izidio de Andrade",
+        "numero": 22,
+        "bairro": "Metalúrgicos",
+        "cidade": "Osasco",
+        "cep": "06150270"
+    },
+    "nm_paciente": "Mariano Alexandre",
+    "num_idade": 25,
+    "ds_sexo_paciente": "Masculino",
+    "num_altura": 1.85,
+    "num_peso": 90.0,
+    "ds_rg": "545658654",
+    "ds_cpf": "23484569752"
+}
